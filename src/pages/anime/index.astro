@@ -1,0 +1,255 @@
+---
+import Layout from '@layouts/Layout.astro';
+import Comment from '@components/Comment.astro';
+import { animeList } from '@/data/anime';
+
+const statusLabel: Record<string, string> = {
+  completed: '已看完',
+  watching: '在看',
+  wish: '想看',
+};
+---
+
+<Layout title="忆影 · 番剧" description="忆影 · Sumyu 看过的番剧">
+  <div class="container section-page">
+    <header class="page-header">
+      <div class="page-header__crumb">墨竹 / 忆影</div>
+      <h1 class="page-header__title"><iconify-icon icon="mdi:television-classic"></iconify-icon> 忆影</h1>
+      <p class="page-header__subtitle">番剧 · 看过的光影与故事</p>
+    </header>
+
+    <div class="anime-tabs">
+      <button class="anime-tab is-active" data-status="all">全部</button>
+      <button class="anime-tab" data-status="completed">已看完</button>
+      <button class="anime-tab" data-status="watching">在看</button>
+      <button class="anime-tab" data-status="wish">想看</button>
+    </div>
+
+    <!-- 卡片列表: 3 列 grid, 每个卡片左封面 + 右详情 -->
+    <div class="anime-grid">
+      {animeList.map((a, i) => (
+        <a class="anime-card" href={a.link} target="_blank" rel="noopener" data-status={a.status} data-idx={i}>
+          <div class="anime-card__cover">
+            <img src={a.cover} alt={a.title} loading="lazy" decoding="async" />
+          </div>
+          <div class="anime-card__body">
+            <div class="anime-card__head">
+              <h3 class="anime-card__title">{a.title}</h3>
+              <span class={`anime-card__status anime-card__status--${a.status}`}>{statusLabel[a.status]}</span>
+            </div>
+            <div class="anime-card__meta">
+              <span class="anime-card__year">{a.year}</span>
+              <span class="anime-card__sep">·</span>
+              <span class="anime-card__studio">{a.studio}</span>
+              <span class="anime-card__sep">·</span>
+              <span class="anime-card__episodes">{a.episodes}</span>
+            </div>
+            <p class="anime-card__desc">{a.description}</p>
+            <div class="anime-card__tags">
+              {a.genre.map(g => <span class="anime-card__tag">#{g}</span>)}
+            </div>
+            {a.rating > 0 && (
+              <div class="anime-card__rating">
+                <iconify-icon icon="mdi:star" aria-hidden="true"></iconify-icon>
+                <span class="anime-card__rating-num">{a.rating.toFixed(1)}</span>
+              </div>
+            )}
+            {a.progress && a.totalEpisodes && (
+              <div class="anime-card__progress">
+                <div class="anime-card__progress-bar">
+                  <div class="anime-card__progress-fill" style={`width: ${(a.progress / a.totalEpisodes) * 100}%`}></div>
+                </div>
+                <span class="anime-card__progress-text">{a.progress}/{a.totalEpisodes}</span>
+              </div>
+            )}
+            <span class="anime-card__enter">
+              前往观看
+              <iconify-icon icon="ri:external-link-line" aria-hidden="true"></iconify-icon>
+            </span>
+          </div>
+        </a>
+      ))}
+    </div>
+
+    {animeList.length === 0 && (
+      <div class="anime-empty">
+        <iconify-icon icon="mdi:television-off" aria-hidden="true"></iconify-icon>
+        <p>暂无番剧数据 · 请在 <code>src/data/anime.ts</code> 添加</p>
+      </div>
+    )}
+
+    <!-- 页面底部独立 yuamli 评论区 (pageId='yiying', 与文章评论区隔离) -->
+    <div class="anime-comment-section">
+      <Comment pageId="yiying" />
+    </div>
+  </div>
+</Layout>
+
+<script data-astro-rerun>
+  // ---- 标签筛选 ----
+  const tabs = document.querySelectorAll('.anime-tab');
+  const cards = document.querySelectorAll('.anime-card[data-status]');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('is-active'));
+      tab.classList.add('is-active');
+      const status = tab.getAttribute('data-status');
+      cards.forEach(c => {
+        c.style.display = (status === 'all' || c.getAttribute('data-status') === status) ? '' : 'none';
+      });
+    });
+  });
+</script>
+
+<style>
+  .section-page { padding: 32px 24px 60px; max-width: var(--container-max); }
+  .page-header { margin-bottom: 20px; }
+  .page-header__crumb { font-size: 12px; color: var(--text-muted); letter-spacing: 0.1em; margin-bottom: 6px; }
+  .page-header__title { font-size: 28px; color: var(--text-strong); display: inline-flex; align-items: center; gap: 8px; }
+  .page-header__title iconify-icon { color: var(--sakura-primary); }
+  .page-header__subtitle { color: var(--text-muted); font-size: 13px; margin-top: 8px; }
+
+  .anime-tabs {
+    display: flex; gap: 6px; margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .anime-tab {
+    padding: 6px 16px; border-radius: var(--radius-full);
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    color: var(--text-base); font-size: 13px;
+    transition: all var(--transition-fast); cursor: pointer;
+  }
+  .anime-tab:hover { border-color: var(--sakura-primary-soft); color: var(--sakura-primary); }
+  .anime-tab.is-active { background: var(--sakura-primary); color: #fff; border-color: var(--sakura-primary); }
+
+  /* 卡片网格: 3 列 (响应式: 平板 2 列, 手机 1 列) */
+  .anime-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  /* 卡片: 左封面 + 右详情 横向布局 */
+  .anime-card {
+    display: flex;
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg); overflow: hidden;
+    transition: all var(--transition-base); color: inherit;
+    cursor: pointer;
+  }
+  .anime-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--sakura-primary-soft);
+  }
+
+  .anime-card__cover {
+    width: 96px; flex-shrink: 0;
+    background: var(--bg-soft); overflow: hidden;
+  }
+  .anime-card__cover img {
+    width: 100%; height: 100%; object-fit: cover;
+    transition: transform var(--transition-base);
+  }
+  .anime-card:hover .anime-card__cover img { transform: scale(1.06); }
+
+  .anime-card__body {
+    flex: 1; min-width: 0; padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+
+  .anime-card__head {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 6px;
+  }
+  .anime-card__title {
+    font-size: 14px; color: var(--text-strong); font-weight: 600;
+    line-height: 1.3; flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .anime-card:hover .anime-card__title { color: var(--sakura-primary); }
+
+  .anime-card__status {
+    font-size: 10px; padding: 1px 6px; border-radius: var(--radius-full);
+    flex-shrink: 0; white-space: nowrap;
+  }
+  .anime-card__status--completed { background: #e8f5e9; color: #4caf50; }
+  .anime-card__status--watching { background: var(--sakura-primary-bg); color: var(--sakura-primary-deep); }
+  .anime-card__status--wish { background: #fff3e0; color: #ff9800; }
+
+  .anime-card__meta {
+    font-size: 10px; color: var(--text-muted);
+    display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+  }
+  .anime-card__sep { color: var(--text-faint); }
+
+  .anime-card__desc {
+    font-size: 11px; color: var(--text-base); line-height: 1.5;
+    margin: 2px 0;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+
+  .anime-card__tags {
+    display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0;
+  }
+  .anime-card__tag {
+    font-size: 10px; color: var(--sakura-primary);
+  }
+
+  .anime-card__rating {
+    font-size: 11px; color: #f39c12;
+    display: inline-flex; align-items: center; gap: 2px;
+  }
+  .anime-card__rating iconify-icon { font-size: 12px; }
+
+  .anime-card__progress {
+    display: flex; align-items: center; gap: 6px;
+    margin-top: 2px;
+  }
+  .anime-card__progress-bar {
+    flex: 1; height: 3px; background: var(--border-soft);
+    border-radius: 2px; overflow: hidden;
+  }
+  .anime-card__progress-fill {
+    height: 100%; background: var(--sakura-primary);
+    transition: width var(--transition-base);
+  }
+  .anime-card__progress-text {
+    font-size: 10px; color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .anime-card__enter {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 10px; color: var(--sakura-primary);
+    margin-top: auto; padding-top: 4px;
+    transition: gap var(--transition-fast);
+  }
+  .anime-card:hover .anime-card__enter { gap: 6px; }
+  .anime-card__enter iconify-icon { font-size: 12px; }
+
+  /* 空状态 */
+  .anime-empty {
+    text-align: center; padding: 80px 24px; color: var(--text-muted);
+  }
+  .anime-empty iconify-icon { font-size: 64px; color: var(--sakura-primary-soft); margin-bottom: 14px; }
+  .anime-empty p { font-size: 14px; margin: 6px 0; }
+  .anime-empty code {
+    background: var(--bg-soft); padding: 2px 8px; border-radius: 4px;
+    font-size: 12px; color: var(--sakura-primary);
+  }
+
+  /* 页面底部评论区 */
+  .anime-comment-section {
+    margin-top: 48px;
+  }
+
+  /* 响应式: 平板 2 列, 手机 1 列 */
+  @media (max-width: 1024px) {
+    .anime-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .anime-grid { grid-template-columns: 1fr; }
+    .anime-card__cover { width: 80px; }
+    .anime-card__title { font-size: 13px; }
+  }
+</style>

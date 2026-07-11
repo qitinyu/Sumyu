@@ -1,0 +1,70 @@
+---
+import Layout from '@layouts/Layout.astro';
+
+const trips = [
+  { name: '日本京都', date: '2024 春', cover: 'https://picsum.photos/seed/kyoto/800/500', desc: '樱花季的京都，满城粉色，宛如梦境。', days: 7 },
+  { name: '云南大理', date: '2023 夏', cover: 'https://picsum.photos/seed/dali/800/500', desc: '苍山洱海，风花雪月，慢生活的天堂。', days: 5 },
+  { name: '西藏拉萨', date: '2023 秋', cover: 'https://picsum.photos/seed/lhasa/800/500', desc: '布达拉宫下的转经筒，信仰的力量。', days: 10 },
+  { name: '海南三亚', date: '2022 冬', cover: 'https://picsum.photos/seed/sanya/800/500', desc: '碧海蓝天，椰风海韵，热带的浪漫。', days: 4 },
+];
+---
+
+<Layout title="旅途" description="旅途 · 用脚步丈量世界">
+  <div class="container travel-page">
+    <header class="page-header">
+      <h1 class="page-header__title"><iconify-icon icon="ant-design:environment-filled" aria-hidden="true"></iconify-icon> 旅途</h1>
+      <p class="page-header__subtitle">愿你也能踏遍山河，看见世界的温柔</p>
+    </header>
+
+    <div class="travel-list">
+      {trips.map(t => (
+        <article class="travel-card">
+          <div class="travel-card__cover">
+            <img src={t.cover} alt={t.name} loading="lazy" />
+            <div class="travel-card__overlay"></div>
+            <div class="travel-card__name">
+              <h3>{t.name}</h3>
+              <span>{t.date} · {t.days} 天</span>
+            </div>
+          </div>
+          <div class="travel-card__body">
+            <p>{t.desc}</p>
+            <a href="#" class="travel-card__more">查看游记 →</a>
+          </div>
+        </article>
+      ))}
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .travel-page { padding: 32px 24px 40px; max-width: 960px; }
+  .page-header { margin-bottom: 28px; text-align: center; }
+  .page-header__title { font-size: 28px; color: var(--text-strong); display: inline-flex; align-items: center; gap: 8px; }
+  .page-header__title iconify-icon { color: var(--sakura-primary); }
+  .page-header__subtitle { color: var(--text-muted); font-size: 13px; margin-top: 8px; }
+
+  .travel-list { display: flex; flex-direction: column; gap: 24px; }
+  .travel-card {
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg); overflow: hidden;
+    transition: all var(--transition-base);
+  }
+  .travel-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+  .travel-card__cover { position: relative; aspect-ratio: 21/9; overflow: hidden; }
+  .travel-card__cover img { width: 100%; height: 100%; object-fit: cover; transition: transform var(--transition-base); }
+  .travel-card:hover .travel-card__cover img { transform: scale(1.05); }
+  .travel-card__overlay { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.7) 100%); }
+  .travel-card__name {
+    position: absolute; left: 24px; bottom: 20px; color: #fff;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  }
+  .travel-card__name h3 { font-size: 22px; color: #fff; }
+  .travel-card__name span { font-size: 13px; opacity: 0.9; }
+  .travel-card__body { padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+  .travel-card__body p { font-size: 14px; color: var(--text-base); line-height: 1.7; flex: 1; }
+  .travel-card__more { color: var(--sakura-primary); font-size: 13px; white-space: nowrap; }
+  @media (max-width: 640px) {
+    .travel-card__body { flex-direction: column; align-items: flex-start; }
+  }
+</style>

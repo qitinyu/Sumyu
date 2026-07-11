@@ -1,0 +1,240 @@
+---
+import { LOGO, NAV_SECTIONS, SETTINGS_PANEL, MUSIC } from '@/config';
+
+const currentPath = Astro.url.pathname;
+const isActive = (href: string) => {
+  if (href === '/') return currentPath === '/';
+  return currentPath.startsWith(href);
+};
+---
+
+<header class="sakura-navbar" id="navbar">
+  <div class="navbar-content sakura-safe-padding">
+    <!-- 左侧: logo (支持 text / image / image+text 三种模式) -->
+    <div class="sakura-navbar__brand-wrap">
+      <button type="button" class="mobile-btn sakura-navbar__menu-btn" id="sidebar-toggle" aria-label="mobile navigation" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+      <a class="sakura-navbar-brand" href="/" title={LOGO.text || 'Sumyu'}>
+        {LOGO.image && (
+          <img class="sakura-navbar-brand__image" src={LOGO.image} alt={LOGO.text || 'logo'} />
+        )}
+        {LOGO.text && (
+          <span class="sakura-navbar-brand__text">{LOGO.text}</span>
+        )}
+      </a>
+    </div>
+
+    <!-- 中间: 五个版块 -->
+    <nav class="sakura-navbar-link" id="navbar-links" aria-label="主导航">
+      {NAV_SECTIONS.map((item: any) => (
+        <div class={`sakura-navbar-link-item${item.children ? ' has-children' : ''}`}>
+          <a class="sakura-nav-link" href={item.href} data-nav={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
+            <span class="sakura-nav-link-text">{item.label}</span>
+          </a>
+          {item.children && (
+            <div class="sakura-dropdown-menu">
+              <div class="sakura-dropdown-list">
+                {item.children.map((child: any) => (
+                  <a class="sakura-dropdown-item" href={child.href} data-nav={child.href}>
+                    <span class="sakura-dropdown-item__label">{child.label}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </nav>
+
+    <!-- 右侧: 音乐 + 搜索 + 设置 -->
+    <div class="sakura-navbar-tools">
+      {MUSIC.enabled && (
+        <button type="button" class="sakura-icon-btn sakura-navbar-tool" id="music-open" aria-label="音乐播放器">
+          <iconify-icon icon="ri:music-2-line"></iconify-icon>
+        </button>
+      )}
+      <button type="button" class="sakura-icon-btn sakura-navbar-tool sakura-search-btn" id="search-open" aria-label="搜索" aria-expanded="false">
+        <iconify-icon icon="ri:search-line"></iconify-icon>
+      </button>
+      {SETTINGS_PANEL.enabled && (
+        <button type="button" class="sakura-icon-btn sakura-navbar-tool" id="settings-open" aria-label="设置">
+          <iconify-icon icon="ri:settings-3-line"></iconify-icon>
+        </button>
+      )}
+    </div>
+  </div>
+</header>
+
+<script data-astro-rerun>
+  // ---- 导航栏: 首页顶部透明(透出完整背景图), 滚动后不透明 ----
+  const navbar = document.getElementById('navbar');
+  const html = document.documentElement;
+  const isHome = html.classList.contains('is-home');
+
+  if (navbar && isHome) {
+    function updateNavbar() {
+      const scrollY = window.scrollY;
+      if (scrollY <= 10) {
+        navbar.classList.add('is-transparent');
+        navbar.classList.remove('is-scrolled');
+      } else {
+        navbar.classList.remove('is-transparent');
+        navbar.classList.add('is-scrolled');
+      }
+    }
+
+    // 初始化
+    updateNavbar();
+    window.addEventListener('scroll', updateNavbar, { passive: true });
+  }
+</script>
+
+<style>
+  .sakura-navbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    height: var(--navbar-height);
+    background: var(--bg-overlay);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border-bottom: 1px solid var(--border-soft);
+    transition: background-color var(--transition-base), border-color var(--transition-base), box-shadow var(--transition-base), backdrop-filter var(--transition-base);
+  }
+
+  /* 首页顶部: 透明，可透见底层完整背景图 */
+  .sakura-navbar.is-transparent {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-bottom-color: transparent;
+    box-shadow: none;
+  }
+  .sakura-navbar.is-transparent .sakura-navbar-brand__text,
+  .sakura-navbar.is-transparent .sakura-nav-link,
+  .sakura-navbar.is-transparent .sakura-icon-btn,
+  .sakura-navbar.is-transparent .sakura-navbar-brand {
+    color: rgba(255, 255, 255, 0.92);
+  }
+  .sakura-navbar.is-transparent .sakura-nav-link::after {
+    background: rgba(255, 255, 255, 0.8);
+  }
+  .sakura-navbar.is-transparent .sakura-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+  }
+  .sakura-navbar.is-transparent .sakura-navbar__menu-btn span {
+    background: rgba(255, 255, 255, 0.92);
+  }
+
+  /* 滚动后: 不透明毛玻璃，固定悬浮 */
+  .sakura-navbar.is-scrolled {
+    background: var(--bg-overlay);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border-bottom: 1px solid var(--border-soft);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .navbar-content {
+    height: 100%; max-width: var(--container-max); margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  }
+
+  /* ===== 左侧 brand ===== */
+  .sakura-navbar__brand-wrap { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .sakura-navbar-brand {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 22px; font-weight: 600; color: var(--text-strong);
+    transition: color var(--transition-fast);
+  }
+  .sakura-navbar-brand:hover { color: var(--sakura-primary); }
+  .sakura-navbar-brand__image {
+    width: 32px; height: 32px; border-radius: 6px;
+    object-fit: cover;
+  }
+  .sakura-navbar-brand__text {
+    font-family: var(--font-heading);
+    letter-spacing: 0.02em;
+  }
+
+  /* hamburger */
+  .sakura-navbar__menu-btn { display: none; width: 32px; height: 32px; position: relative; }
+  .sakura-navbar__menu-btn span {
+    display: block; position: absolute; left: 6px; right: 6px; height: 2px;
+    background: var(--text-strong); border-radius: 2px; transition: all var(--transition-fast);
+  }
+  .sakura-navbar__menu-btn span:nth-child(1) { top: 9px; }
+  .sakura-navbar__menu-btn span:nth-child(2) { top: 15px; }
+  .sakura-navbar__menu-btn span:nth-child(3) { top: 21px; }
+
+  /* ===== 中间 nav ===== */
+  .sakura-navbar-link { display: flex; align-items: center; gap: 6px; }
+  .sakura-navbar-link-item { position: relative; }
+  .sakura-nav-link {
+    display: flex; align-items: center; gap: 6px;
+    padding: 10px 18px; border-radius: var(--radius-full);
+    color: var(--text-base); font-size: 16px;
+    font-family: var(--font-heading);
+    position: relative;
+    transition: color var(--transition-fast);
+  }
+  .sakura-nav-link::after {
+    content: ''; position: absolute; left: 18px; right: 18px; bottom: 4px;
+    height: 2px; background: var(--sakura-primary);
+    transform: scaleX(0); transform-origin: left center;
+    transition: transform var(--transition-base);
+    border-radius: 2px;
+  }
+  .sakura-nav-link:hover { color: var(--sakura-primary); }
+  .sakura-nav-link:hover::after { transform: scaleX(1); }
+  .sakura-nav-link[aria-current="page"] { color: var(--sakura-primary); font-weight: 500; }
+  .sakura-nav-link[aria-current="page"]::after { transform: scaleX(1); }
+
+  /* 下拉二级目录 */
+  .sakura-dropdown-menu {
+    position: absolute; top: 100%; left: 50%; transform: translateX(-50%) translateY(8px);
+    min-width: auto; padding: 4px; background: var(--bg-card);
+    border: 1px solid var(--border-color); border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    opacity: 0; visibility: hidden; pointer-events: none;
+    transition: all var(--transition-fast);
+    z-index: 100;
+    white-space: nowrap;
+  }
+  .sakura-navbar-link-item.has-children:hover .sakura-dropdown-menu,
+  .sakura-navbar-link-item.has-children:focus-within .sakura-dropdown-menu {
+    opacity: 1; visibility: visible; pointer-events: auto; transform: translateX(-50%) translateY(0);
+  }
+  .sakura-dropdown-list { display: flex; flex-direction: column; gap: 2px; }
+  .sakura-dropdown-item {
+    display: block;
+    padding: 5px 12px; border-radius: var(--radius-sm);
+    color: var(--text-base); transition: all var(--transition-fast);
+    font-size: 13px; font-family: var(--font-heading);
+    text-align: center;
+  }
+  .sakura-dropdown-item:hover { background: var(--sakura-primary-bg); color: var(--sakura-primary); }
+  .sakura-dropdown-item__label { color: inherit; }
+
+  /* ===== 右侧 tools ===== */
+  .sakura-navbar-tools { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+  .sakura-search-btn.is-open iconify-icon { color: var(--sakura-primary); }
+
+  /* 音乐图标: 播放时旋转 */
+  #music-open { transition: color var(--transition-fast); }
+  #music-open.is-playing { color: var(--sakura-primary); }
+  #music-open.is-playing iconify-icon {
+    animation: navbar-music-spin 3s linear infinite;
+    display: inline-block;
+  }
+  @keyframes navbar-music-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* responsive */
+  @media (max-width: 1024px) {
+    .sakura-navbar__menu-btn { display: block; }
+    .sakura-navbar-link { display: none; }
+  }
+</style>

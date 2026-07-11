@@ -1,0 +1,241 @@
+---
+import Layout from '@layouts/Layout.astro';
+import { galleryAlbums } from '@/data/files';
+
+export async function getStaticPaths() {
+  return galleryAlbums.map(album => ({
+    params: { slug: album.slug },
+    props: { album },
+  }));
+}
+
+interface Props {
+  album: typeof galleryAlbums[number];
+}
+const { album } = Astro.props;
+---
+
+<Layout title={`${album.name} · 留芳`} description={album.desc || `${album.name} 相册`}>
+  <div class="container section-page">
+    <header class="page-header">
+      <div class="page-header__crumb">
+        <a href="/files/">尺素 / 留芳</a> / {album.name}
+      </div>
+      <h1 class="page-header__title">
+        <iconify-icon icon="mdi:folder-image" aria-hidden="true"></iconify-icon>
+        {album.name}
+      </h1>
+      {album.desc && <p class="page-header__subtitle">{album.desc}</p>}
+      <span class="page-header__meta">共 {album.images.length} 张照片</span>
+    </header>
+
+    <a class="back-link" href="/files/">
+      <iconify-icon icon="ri:arrow-left-s-line" aria-hidden="true"></iconify-icon>
+      返回相册列表
+    </a>
+
+    {album.images.length === 0 ? (
+      <div class="gallery-empty">
+        <iconify-icon icon="mdi:image-off-outline" aria-hidden="true"></iconify-icon>
+        <p>此相册暂无图片</p>
+      </div>
+    ) : (
+      <div class="gallery-grid">
+        {album.images.map((img, i) => (
+          <figure class="gallery-item" data-full={img.src} data-title={img.title || album.name} data-idx={i}>
+            <div class="gallery-item__cover">
+              <img src={img.src} alt={img.title || album.name} loading="lazy" decoding="async" />
+            </div>
+            {img.title && <figcaption class="gallery-item__caption">{img.title}</figcaption>}
+          </figure>
+        ))}
+      </div>
+    )}
+  </div>
+</Layout>
+
+<div class="gallery-lightbox" id="gallery-lightbox" aria-hidden="true">
+  <button type="button" class="gallery-lightbox__close" id="lightbox-close" aria-label="关闭">
+    <iconify-icon icon="ri:close-line"></iconify-icon>
+  </button>
+  <button type="button" class="gallery-lightbox__nav gallery-lightbox__prev" id="lightbox-prev" aria-label="上一张">
+    <iconify-icon icon="ri:arrow-left-s-line"></iconify-icon>
+  </button>
+  <button type="button" class="gallery-lightbox__nav gallery-lightbox__next" id="lightbox-next" aria-label="下一张">
+    <iconify-icon icon="ri:arrow-right-s-line"></iconify-icon>
+  </button>
+  <div class="gallery-lightbox__content">
+    <img src="" alt="" id="lightbox-img" />
+    <div class="gallery-lightbox__title" id="lightbox-title"></div>
+    <div class="gallery-lightbox__count" id="lightbox-count"></div>
+  </div>
+</div>
+
+<script data-astro-rerun>
+  const items = Array.from(document.querySelectorAll<HTMLElement>('.gallery-item'));
+  const lightbox = document.getElementById('gallery-lightbox');
+  const lightboxImg = document.getElementById('lightbox-img') as HTMLImageElement | null;
+  const lightboxTitle = document.getElementById('lightbox-title');
+  const lightboxCount = document.getElementById('lightbox-count');
+  const closeBtn = document.getElementById('lightbox-close');
+  const prevBtn = document.getElementById('lightbox-prev');
+  const nextBtn = document.getElementById('lightbox-next');
+  let currentIdx = 0;
+
+  function show(idx: number) {
+    if (items.length === 0) return;
+    currentIdx = (idx + items.length) % items.length;
+    const item = items[currentIdx];
+    const src = item.getAttribute('data-full') || '';
+    const title = item.getAttribute('data-title') || '';
+    if (lightboxImg) {
+      lightboxImg.src = src;
+      lightboxImg.alt = title;
+    }
+    if (lightboxTitle) lightboxTitle.textContent = title;
+    if (lightboxCount) lightboxCount.textContent = `${currentIdx + 1} / ${items.length}`;
+    lightbox?.classList.add('is-open');
+    lightbox?.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function close() {
+    lightbox?.classList.remove('is-open');
+    lightbox?.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  items.forEach((el, i) => {
+    el.addEventListener('click', () => show(i));
+  });
+  closeBtn?.addEventListener('click', close);
+  prevBtn?.addEventListener('click', () => show(currentIdx - 1));
+  nextBtn?.addEventListener('click', () => show(currentIdx + 1));
+  lightbox?.addEventListener('click', (e) => {
+    if (e.target === lightbox) close();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (!lightbox?.classList.contains('is-open')) return;
+    if (e.key === 'Escape') close();
+    if (e.key === 'ArrowLeft') show(currentIdx - 1);
+    if (e.key === 'ArrowRight') show(currentIdx + 1);
+  });
+</script>
+
+<style>
+  .section-page { padding: 32px 24px 60px; max-width: var(--container-max); }
+  .page-header { margin-bottom: 20px; }
+  .page-header__crumb { font-size: 12px; color: var(--text-muted); letter-spacing: 0.1em; margin-bottom: 6px; }
+  .page-header__crumb a { color: var(--sakura-primary); }
+  .page-header__crumb a:hover { text-decoration: underline; }
+  .page-header__title {
+    font-size: 28px; color: var(--text-strong);
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .page-header__title iconify-icon { color: var(--sakura-primary); }
+  .page-header__subtitle { color: var(--text-muted); font-size: 13px; margin-top: 8px; }
+  .page-header__meta {
+    display: inline-block; margin-top: 8px;
+    font-size: 12px; color: var(--sakura-primary);
+    background: var(--sakura-primary-bg);
+    padding: 2px 10px; border-radius: var(--radius-full);
+  }
+
+  .back-link {
+    display: inline-flex; align-items: center; gap: 2px;
+    font-size: 13px; color: var(--text-muted);
+    margin-bottom: 18px; transition: color var(--transition-fast);
+  }
+  .back-link:hover { color: var(--sakura-primary); }
+  .back-link iconify-icon { font-size: 18px; }
+
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+  }
+
+  .gallery-item {
+    position: relative; margin: 0;
+    border-radius: var(--radius-md); overflow: hidden;
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    cursor: pointer; transition: all var(--transition-base);
+  }
+  .gallery-item:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--sakura-primary-soft);
+  }
+  .gallery-item__cover {
+    aspect-ratio: 4/3; overflow: hidden; background: var(--bg-soft);
+  }
+  .gallery-item__cover img {
+    width: 100%; height: 100%; object-fit: cover;
+    transition: transform var(--transition-base);
+  }
+  .gallery-item:hover .gallery-item__cover img { transform: scale(1.06); }
+  .gallery-item__caption {
+    padding: 8px 12px;
+    font-size: 12px; color: var(--text-base); text-align: center;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  .gallery-empty {
+    text-align: center; padding: 80px 24px; color: var(--text-muted);
+  }
+  .gallery-empty iconify-icon { font-size: 64px; color: var(--sakura-primary-soft); margin-bottom: 14px; }
+  .gallery-empty p { font-size: 14px; margin: 6px 0; }
+
+  .gallery-lightbox {
+    position: fixed; inset: 0; z-index: 2000;
+    background: rgba(0, 0, 0, 0.92);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+  }
+  .gallery-lightbox.is-open { opacity: 1; visibility: visible; }
+  .gallery-lightbox__content {
+    max-width: 90vw; max-height: 85vh;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .gallery-lightbox__content img {
+    max-width: 90vw; max-height: 78vh; object-fit: contain;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    border-radius: var(--radius-md);
+  }
+  .gallery-lightbox__title {
+    color: #fff; font-size: 14px;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  }
+  .gallery-lightbox__count {
+    color: rgba(255,255,255,0.7); font-size: 12px;
+  }
+  .gallery-lightbox__close,
+  .gallery-lightbox__nav {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff; border: none; cursor: pointer;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    transition: background var(--transition-fast);
+  }
+  .gallery-lightbox__close {
+    top: 20px; right: 20px; width: 44px; height: 44px; font-size: 22px;
+  }
+  .gallery-lightbox__nav {
+    top: 50%; transform: translateY(-50%);
+    width: 48px; height: 48px; font-size: 28px;
+  }
+  .gallery-lightbox__prev { left: 20px; }
+  .gallery-lightbox__next { right: 20px; }
+  .gallery-lightbox__close:hover,
+  .gallery-lightbox__nav:hover { background: rgba(255, 255, 255, 0.3); }
+
+  @media (max-width: 768px) {
+    .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+    .gallery-lightbox__close { top: 12px; right: 12px; width: 38px; height: 38px; font-size: 18px; }
+    .gallery-lightbox__nav { width: 40px; height: 40px; font-size: 22px; }
+    .gallery-lightbox__prev { left: 10px; }
+    .gallery-lightbox__next { right: 10px; }
+  }
+</style>

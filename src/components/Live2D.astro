@@ -1,0 +1,297 @@
+---
+import { LIVE2D } from '@/config';
+---
+
+{LIVE2D.enabled && (
+  <div id="live2d-container" class={`live2d-container live2d-container--${LIVE2D.position}`}
+    style={`--l2d-w: ${LIVE2D.width}px; --l2d-h: ${LIVE2D.height}px;`}
+    transition:persist="live2d-container">
+    <canvas id="live2d-canvas"></canvas>
+    <!-- 重置位置按钮 -->
+    <button type="button" class="live2d-reset-btn" id="live2d-reset-btn" title="重置位置" aria-label="重置位置">
+      <iconify-icon icon="ri:refresh-line" aria-hidden="true"></iconify-icon>
+    </button>
+  </div>
+)}
+
+<!-- PixiJS v6 -->
+<script src="https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js" defer></script>
+<!-- Live2D Cubism 4 Core (moc3 运行时，必须在 pixi-live2d-display 之前加载) -->
+<script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js" defer></script>
+<!-- pixi-live2d-display: 仅加载 Cubism 4 支持的 cubism4.min.js，不依赖 Cubism 2 runtime -->
+<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism4.min.js" defer></script>
+
+<script>
+  // ---- Live2D 加载与切换 (moc3 / Cubism 4) ----
+  const DEFAULT_MODEL = '/live2/models/cmtt/cmtt.model3.json';
+  // 模型默认尺寸 (放大, 更好展示)
+  const config = {
+    position: 'left',
+    width: 380,
+    height: 620,
+    mobileOff: true,
+    // 模型缩放系数 (相对画布宽度的比例, 越大模型越大)
+    modelScale: 0.78,
+  };
+
+  // 持久化位置 key
+  const POSITION_KEY = 'sumyu-live2d-position';
+
+  const isMobile = window.matchMedia('(max-width: 768px)').matches;
+  if (isMobile && config.mobileOff) {
+    const c = document.getElementById('live2d-container');
+    if (c) c.style.display = 'none';
+  } else {
+    // 等待三个库都加载完成
+    function waitForLibs(): Promise<void> {
+      return new Promise((resolve) => {
+        let elapsed = 0;
+        const check = () => {
+          // @ts-ignore
+          const hasPixi = !!(window.PIXI && window.PIXI.Application);
+          // @ts-ignore
+          const hasLive2D = !!(window.PIXI && window.PIXI.live2d && window.PIXI.live2d.Live2DModel);
+          if (hasPixi && hasLive2D) {
+            resolve();
+          } else if (elapsed > 20000) {
+            console.warn('[Live2D] 库加载超时, PIXI:', hasPixi, 'live2d:', hasLive2D);
+            resolve();
+          } else {
+            elapsed += 150;
+            setTimeout(check, 150);
+          }
+        };
+        check();
+      });
+    }
+
+    let app: any = null;
+    let currentModel: any = null;
+    const canvas = document.getElementById('live2d-canvas');
+    const container = document.getElementById('live2d-container');
+
+    async function loadModel(modelPath: string) {
+      if (!canvas) return;
+      // @ts-ignore
+      if (!window.PIXI || !window.PIXI.live2d || !window.PIXI.live2d.Live2DModel) {
+        console.warn('[Live2D] 库未就绪，跳过模型加载');
+        return;
+      }
+
+      // @ts-ignore
+      const Live2DModel = window.PIXI.live2d.Live2DModel;
+
+      // 注册 Ticker (pixi.js v6 需要)
+      try {
+        // @ts-ignore
+        Live2DModel.registerTicker(window.PIXI.Ticker);
+      } catch (_) {}
+
+      if (!app) {
+        try {
+          // @ts-ignore
+          app = new window.PIXI.Application({
+            view: canvas,
+            autoStart: true,
+            backgroundAlpha: 0,
+            width: config.width,
+            height: config.height,
+          });
+        } catch (e) {
+          console.warn('[Live2D] PIXI.Application 初始化失败:', e);
+          return;
+        }
+      }
+
+      // 移除旧模型
+      if (currentModel) {
+        app.stage.removeChild(currentModel);
+        try {
+          currentModel.destroy({ children: true, texture: true, baseTexture: true });
+        } catch (_) {}
+        currentModel = null;
+      }
+
+      try {
+        const model = await Live2DModel.from(modelPath, { autoInteract: true });
+        // 缩放: 让模型适配容器宽度 (放大版)
+        const baseWidth = model.internalModel?.settings?.resolvedCanvasWidth || model.width || 300;
+        const targetW = config.width * config.modelScale;
+        const scale = targetW / baseWidth;
+        model.scale.set(scale);
+        // 底部居中
+        model.x = (config.width - model.width) / 2;
+        model.y = config.height - model.height;
+        app.stage.addChild(model);
+        currentModel = model;
+        console.log('[Live2D] 模型加载成功:', modelPath);
+      } catch (e) {
+        console.warn('[Live2D] 模型加载失败:', modelPath, e);
+      }
+    }
+
+    // ---- 拖拽功能: 直接按住模型 (canvas) 即可拖动 ----
+    function setupDrag() {
+      if (!container || !canvas) return;
+      const resetBtn = document.getElementById('live2d-reset-btn');
+      let dragging = false;
+      let startX = 0, startY = 0;
+      let originLeft = 0, originTop = 0;
+      // 判断是否为拖拽 (移动超过阈值才视为拖拽, 否则视为点击模型交互)
+      let dragThreshold = 5;
+      let hasMoved = false;
+
+      // 恢复位置
+      function restorePosition() {
+        if (!container) return;
+        const saved = localStorage.getItem(POSITION_KEY);
+        if (saved) {
+          try {
+            const pos = JSON.parse(saved);
+            container.style.left = pos.left + 'px';
+            container.style.top = pos.top + 'px';
+            container.style.right = 'auto';
+            container.style.bottom = 'auto';
+          } catch (_) {}
+        }
+      }
+      restorePosition();
+
+      // 拖拽开始 (仅在 canvas 上触发, 确保直接按住模型拖动)
+      function onDown(e: MouseEvent | TouchEvent) {
+        if (!container) return;
+        dragging = true;
+        hasMoved = false;
+        const point = 'touches' in e ? e.touches[0] : e;
+        startX = point.clientX;
+        startY = point.clientY;
+        const rect = container.getBoundingClientRect();
+        originLeft = rect.left;
+        originTop = rect.top;
+        container.style.left = originLeft + 'px';
+        container.style.top = originTop + 'px';
+        container.style.right = 'auto';
+        container.style.bottom = 'auto';
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+      }
+
+      function onMove(e: MouseEvent | TouchEvent) {
+        if (!dragging || !container) return;
+        const point = 'touches' in e ? e.touches[0] : e;
+        const dx = point.clientX - startX;
+        const dy = point.clientY - startY;
+        // 超过阈值才视为拖拽
+        if (!hasMoved && Math.abs(dx) < dragThreshold && Math.abs(dy) < dragThreshold) return;
+        hasMoved = true;
+        container.classList.add('is-dragging');
+        let newLeft = originLeft + dx;
+        let newTop = originTop + dy;
+        const w = container.offsetWidth;
+        const h = container.offsetHeight;
+        newLeft = Math.max(0, Math.min(window.innerWidth - w, newLeft));
+        newTop = Math.max(0, Math.min(window.innerHeight - h, newTop));
+        container.style.left = newLeft + 'px';
+        container.style.top = newTop + 'px';
+        e.preventDefault();
+      }
+
+      function onUp() {
+        if (!dragging) return;
+        dragging = false;
+        container?.classList.remove('is-dragging');
+        document.body.style.userSelect = '';
+        if (container && hasMoved) {
+          const rect = container.getBoundingClientRect();
+          localStorage.setItem(POSITION_KEY, JSON.stringify({
+            left: Math.round(rect.left),
+            top: Math.round(rect.top),
+          }));
+        }
+        hasMoved = false;
+      }
+
+      // 监听 canvas (直接按住模型拖动) 和重置按钮
+      canvas.addEventListener('mousedown', onDown);
+      canvas.addEventListener('touchstart', onDown, { passive: false });
+      resetBtn?.addEventListener('mousedown', onDown);
+      resetBtn?.addEventListener('touchstart', onDown, { passive: false });
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('touchmove', onMove, { passive: false });
+      document.addEventListener('mouseup', onUp);
+      document.addEventListener('touchend', onUp);
+
+      // 重置位置按钮
+      resetBtn?.addEventListener('click', () => {
+        if (!container) return;
+        localStorage.removeItem(POSITION_KEY);
+        container.style.left = '10px';
+        container.style.top = 'auto';
+        container.style.right = 'auto';
+        container.style.bottom = '0';
+      });
+    }
+
+    (async () => {
+      await waitForLibs();
+      // 初始模型: localStorage 优先, 否则用默认
+      const initialPath = localStorage.getItem('sumyu-live2d-model') || DEFAULT_MODEL;
+      const live2dPref = localStorage.getItem('sumyu-live2d');
+      const shouldLoad = live2dPref === null ? true : live2dPref === 'true';
+      if (shouldLoad) {
+        loadModel(initialPath);
+      } else {
+        if (container) container.style.display = 'none';
+      }
+
+      // 设置拖拽
+      setupDrag();
+
+      // 监听设置面板的模型切换事件
+      window.addEventListener('sumyu:live2d-change', (e: any) => {
+        loadModel(e.detail.path);
+      });
+    })();
+  }
+</script>
+
+<style>
+  .live2d-container {
+    position: fixed; bottom: 0; left: 10px; z-index: 900;
+    pointer-events: none;
+    width: var(--l2d-w, 380px);
+    height: var(--l2d-h, 620px);
+  }
+  .live2d-container--right { left: auto; right: 10px; }
+  .live2d-container canvas {
+    width: 100%; height: 100%;
+    pointer-events: auto;
+    cursor: grab;
+  }
+  .live2d-container.is-dragging canvas { cursor: grabbing; }
+
+  /* 重置位置按钮 */
+  .live2d-reset-btn {
+    position: absolute;
+    top: 6px; left: 40px;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.85);
+    color: var(--text-muted, #888);
+    font-size: 14px;
+    border: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease, color 0.2s ease;
+    pointer-events: auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    z-index: 10;
+  }
+  .live2d-reset-btn:hover { opacity: 1; color: var(--sakura-primary, #DF9193); background: rgba(255, 255, 255, 1); }
+  .live2d-container:hover .live2d-reset-btn { opacity: 0.9; }
+
+  @media (max-width: 768px) {
+    .live2d-container { display: none; }
+  }
+</style>

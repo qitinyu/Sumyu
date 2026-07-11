@@ -1,0 +1,173 @@
+---
+import Layout from '@layouts/Layout.astro';
+import Hero from '@components/Hero.astro';
+import NoticeBoard from '@components/NoticeBoard.astro';
+import BlogPostCard from '@components/BlogPostCard.astro';
+import { getPublishedPosts } from '@/utils/posts';
+import { POSTS_PAGE_SIZE } from '@/config';
+
+const allPosts = await getPublishedPosts();
+// 置顶文章优先排序: pinned: true 的文章排到最前, 其余按 pubDate 倒序
+const sortedPosts = [...allPosts].sort((a, b) => {
+  const ap = a.data.pinned ? 1 : 0;
+  const bp = b.data.pinned ? 1 : 0;
+  if (ap !== bp) return bp - ap;
+  return b.data.pubDate.getTime() - a.data.pubDate.getTime();
+});
+const totalPages = Math.max(1, Math.ceil(sortedPosts.length / POSTS_PAGE_SIZE));
+---
+
+<Layout isHome title="Sumyu" description="Sumyu 的个人博客 · 轩窗听雨">
+  <Hero />
+
+  <section class="home-posts" id="home-posts">
+    <div class="container">
+      <!-- 公告栏 + 随机轮播文章 + 站点统计 -->
+      <div class="home-posts__notice">
+        <NoticeBoard />
+      </div>
+
+      <header class="home-posts__head" id="posts-head">
+        <h2 class="home-posts__title">
+          <iconify-icon icon="ant-design:read-filled" aria-hidden="true"></iconify-icon>
+          博文
+        </h2>
+        <span class="home-posts__count">共 {sortedPosts.length} 篇 · 第 <span id="page-current">1</span> / {totalPages} 页</span>
+      </header>
+
+      <div class="home-posts__list" id="posts-list">
+        {sortedPosts.map((post, i) => (
+          <div class="post-page-item" data-page={Math.floor(i / POSTS_PAGE_SIZE) + 1}>
+            <BlogPostCard post={post} />
+          </div>
+        ))}
+      </div>
+
+      {totalPages > 1 && (
+        <nav class="home-pagination" id="home-pagination" data-total-pages={totalPages} data-page-size={POSTS_PAGE_SIZE}>
+          <button type="button" class="home-pagination__btn" id="page-prev">← 上一页</button>
+          <div class="home-pagination__pages" id="page-numbers">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+              <button type="button" class={`home-pagination__page${n === 1 ? ' is-active' : ''}`} data-page={n}>{n}</button>
+            ))}
+          </div>
+          <button type="button" class="home-pagination__btn" id="page-next">下一页 →</button>
+        </nav>
+      )}
+    </div>
+  </section>
+</Layout>
+
+<script data-astro-rerun>
+  const pagination = document.getElementById('home-pagination');
+  const sectionHeader = document.getElementById('posts-head');
+  if (pagination) {
+    const total = parseInt(pagination.dataset.totalPages || '1', 10);
+    let currentPage = 1;
+    // initialLoad 标记: 进入页面时的初始化阶段, 不滚动到博文标题
+    let initialLoad = true;
+
+    const items = document.querySelectorAll('#posts-list .post-page-item');
+    const pageNumBtns = pagination.querySelectorAll('.home-pagination__page');
+    const prevBtn = document.getElementById('page-prev') as HTMLButtonElement | null;
+    const nextBtn = document.getElementById('page-next') as HTMLButtonElement | null;
+    const currentLabel = document.getElementById('page-current');
+
+    function goTo(page: number, scroll: boolean = true) {
+      page = Math.min(Math.max(1, page), total);
+      currentPage = page;
+      // 显示/隐藏文章卡片
+      items.forEach(item => {
+        const p = parseInt(item.getAttribute('data-page') || '1', 10);
+        (item as HTMLElement).style.display = p === page ? '' : 'none';
+      });
+      // 更新页码按钮高亮
+      pageNumBtns.forEach(btn => {
+        const p = parseInt(btn.getAttribute('data-page') || '1', 10);
+        btn.classList.toggle('is-active', p === page);
+      });
+      // 更新当前页码文字
+      if (currentLabel) currentLabel.textContent = String(page);
+      // 更新上一页/下一页按钮状态
+      if (prevBtn) prevBtn.disabled = page <= 1;
+      if (nextBtn) nextBtn.disabled = page >= total;
+      // 更新 URL 参数
+      const url = new URL(window.location.href);
+      if (page > 1) {
+        url.searchParams.set('page', String(page));
+      } else {
+        url.searchParams.delete('page');
+      }
+      history.replaceState(null, '', url.toString());
+      // 仅在用户主动翻页 (非初始加载) 时滚动到博文标题处
+      if (scroll && !initialLoad) {
+        sectionHeader?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    // 初始化: 隐藏非第一页的文章, 不滚动
+    const urlPage = parseInt(new URLSearchParams(window.location.search).get('page') || '1', 10);
+    if (urlPage > 1 && urlPage <= total) {
+      goTo(urlPage, false);
+    } else {
+      goTo(1, false);
+    }
+    // 初始化完成, 后续翻页操作均触发滚动
+    initialLoad = false;
+
+    // 绑定事件: 翻页/点击页码 → 滚动到博文标题处
+    pageNumBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        goTo(parseInt(btn.getAttribute('data-page') || '1', 10), true);
+      });
+    });
+    prevBtn?.addEventListener('click', () => goTo(currentPage - 1, true));
+    nextBtn?.addEventListener('click', () => goTo(currentPage + 1, true));
+  }
+</script>
+
+<style>
+  .home-posts { padding: 40px 24px 60px; }
+  .home-posts__notice { margin-bottom: 40px; }
+  .home-posts__head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 24px; padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+    scroll-margin-top: calc(var(--navbar-height, 60px) + 16px);
+  }
+  .home-posts__title {
+    font-size: 24px; color: var(--text-strong);
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .home-posts__title iconify-icon { color: var(--sakura-primary); }
+  .home-posts__count { font-size: 13px; color: var(--text-muted); }
+
+  .home-posts__list { display: flex; flex-direction: column; gap: 14px; }
+
+  .home-pagination {
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    margin-top: 40px;
+  }
+  .home-pagination__btn {
+    padding: 8px 18px; border-radius: var(--radius-full);
+    border: 1px solid var(--border-color); color: var(--text-base);
+    font-size: 13px; transition: all var(--transition-fast);
+    cursor: pointer; background: transparent;
+  }
+  .home-pagination__btn:hover:not(:disabled) { border-color: var(--sakura-primary); color: var(--sakura-primary); }
+  .home-pagination__btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .home-pagination__pages { display: flex; gap: 6px; }
+  .home-pagination__page {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: 50%;
+    color: var(--text-muted); font-size: 13px; cursor: pointer;
+    transition: all var(--transition-fast); background: transparent;
+  }
+  .home-pagination__page:hover { color: var(--sakura-primary); background: var(--sakura-primary-bg); }
+  .home-pagination__page.is-active { background: var(--sakura-primary); color: #fff; }
+
+  @media (max-width: 768px) {
+    .home-posts { padding: 24px 16px 40px; }
+    .home-posts__notice { margin-bottom: 28px; }
+  }
+</style>

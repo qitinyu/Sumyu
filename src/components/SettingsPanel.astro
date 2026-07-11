@@ -1,0 +1,355 @@
+---
+import { SETTINGS_PANEL, THEME_COLORS, LIVE2D } from '@/config';
+---
+
+{SETTINGS_PANEL.enabled && (
+  <div class="sakura-settings" id="settings-panel" aria-hidden="true">
+    <div class="sakura-settings__overlay" id="settings-overlay"></div>
+    <div class="sakura-settings__popup">
+      <div class="sakura-settings__header">
+        <h3><iconify-icon icon="ri:settings-3-line"></iconify-icon> 设置</h3>
+        <button type="button" class="sakura-icon-btn" id="settings-close" aria-label="关闭">
+          <iconify-icon icon="ri:close-line"></iconify-icon>
+        </button>
+      </div>
+      <div class="sakura-settings__body">
+        {SETTINGS_PANEL.options.darkMode && (
+          <div class="sakura-settings__row">
+            <div class="sakura-settings__row-label">
+              <iconify-icon icon="ri:moon-line" aria-hidden="true"></iconify-icon>
+              <div>
+                <div class="sakura-settings__row-title">暗黑模式</div>
+                <div class="sakura-settings__row-desc">夜间阅读更舒适</div>
+              </div>
+            </div>
+            <label class="sakura-switch">
+              <input type="checkbox" id="setting-darkmode" />
+              <span class="sakura-switch__slider"></span>
+            </label>
+          </div>
+        )}
+
+        {SETTINGS_PANEL.options.live2d && (
+          <div class="sakura-settings__row">
+            <div class="sakura-settings__row-label">
+              <iconify-icon icon="mdi:cat" aria-hidden="true"></iconify-icon>
+              <div>
+                <div class="sakura-settings__row-title">Live2D 看板娘</div>
+                <div class="sakura-settings__row-desc">显示二次元看板娘</div>
+              </div>
+            </div>
+            <label class="sakura-switch">
+              <input type="checkbox" id="setting-live2d" />
+              <span class="sakura-switch__slider"></span>
+            </label>
+          </div>
+        )}
+
+        {LIVE2D.enabled && LIVE2D.modelList.length > 1 && (
+          <div class="sakura-settings__row sakura-settings__row--col">
+            <div class="sakura-settings__row-label">
+              <iconify-icon icon="mdi:swap-horizontal" aria-hidden="true"></iconify-icon>
+              <div>
+                <div class="sakura-settings__row-title">看板娘模型</div>
+                <div class="sakura-settings__row-desc">切换 Live2D 模型</div>
+              </div>
+            </div>
+            <div class="sakura-settings__models">
+              {LIVE2D.modelList.map((m: any) => (
+                <button type="button" class="sakura-settings__model" data-model-path={m.path}>
+                  {m.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {SETTINGS_PANEL.options.sakura && (
+          <div class="sakura-settings__row">
+            <div class="sakura-settings__row-label">
+              <iconify-icon icon="mdi:flower" aria-hidden="true"></iconify-icon>
+              <div>
+                <div class="sakura-settings__row-title">樱花飘落</div>
+                <div class="sakura-settings__row-desc">页面飘落樱花花瓣</div>
+              </div>
+            </div>
+            <label class="sakura-switch">
+              <input type="checkbox" id="setting-sakura" />
+              <span class="sakura-switch__slider"></span>
+            </label>
+          </div>
+        )}
+
+        {SETTINGS_PANEL.options.themeColor && (
+          <div class="sakura-settings__row sakura-settings__row--col">
+            <div class="sakura-settings__row-label">
+              <iconify-icon icon="ri:palette-line" aria-hidden="true"></iconify-icon>
+              <div>
+                <div class="sakura-settings__row-title">主题色</div>
+                <div class="sakura-settings__row-desc">五套淡雅色调 · 仅明亮模式生效</div>
+              </div>
+            </div>
+            <div class="sakura-settings__colors">
+              {THEME_COLORS.map((c: any) => (
+                <button type="button"
+                  class="sakura-settings__color"
+                  data-color-id={c.id}
+                  title={c.name}
+                  style={`--swatch: ${c.primary}; --swatch-soft: ${c.soft};`}>
+                  <span class="sakura-settings__color-dot"></span>
+                  <span class="sakura-settings__color-name">{c.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+)}
+
+<script>
+  // ===== View Transitions: 设置面板 =====
+  let settingsPanelOpen = false;
+
+  function setSettings(open: boolean) {
+    const sp = document.getElementById('settings-panel');
+    if (!sp) return;
+    settingsPanelOpen = open;
+    sp.classList.toggle('is-open', open);
+    sp.setAttribute('aria-hidden', String(!open));
+    document.body.style.overflow = open ? 'hidden' : '';
+  }
+
+  // document 级监听 (仅绑定一次)
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') setSettings(false);
+  });
+
+  // ===== 页面级初始化 =====
+  function initSettings() {
+    const settingsOpen = document.getElementById('settings-open');
+    const settingsClose = document.getElementById('settings-close');
+    const settingsOverlay = document.getElementById('settings-overlay');
+
+    settingsOpen?.addEventListener('click', () => setSettings(true));
+    settingsClose?.addEventListener('click', () => setSettings(false));
+    settingsOverlay?.addEventListener('click', () => setSettings(false));
+
+    // Dark mode
+    const darkToggle = document.getElementById('setting-darkmode') as HTMLInputElement | null;
+    if (darkToggle) {
+      darkToggle.checked = document.documentElement.classList.contains('dark');
+      darkToggle.addEventListener('change', () => {
+        const isDark = darkToggle.checked;
+        document.documentElement.classList.toggle('dark', isDark);
+        try { localStorage.setItem('sakura-theme', isDark ? 'dark' : 'light'); } catch (_) {}
+        if (!isDark) {
+          const colorId = localStorage.getItem('sumyu-theme-color') || 'sakura';
+          document.documentElement.setAttribute('data-theme-color', colorId);
+        }
+      });
+    }
+
+    // Live2D toggle
+    const live2dToggle = document.getElementById('setting-live2d') as HTMLInputElement | null;
+    const initialLive2d = localStorage.getItem('sumyu-live2d');
+    const live2dDefault = initialLive2d === null ? true : initialLive2d === 'true';
+    if (live2dToggle) live2dToggle.checked = live2dDefault;
+    function applyLive2d(on: boolean) {
+      const container = document.getElementById('live2d-container');
+      if (!container) return;
+      container.style.display = on ? '' : 'none';
+    }
+    applyLive2d(live2dDefault);
+    live2dToggle?.addEventListener('change', () => {
+      localStorage.setItem('sumyu-live2d', String(live2dToggle.checked));
+      applyLive2d(live2dToggle.checked);
+    });
+
+    // Live2D model switch
+    const modelButtons = document.querySelectorAll('.sakura-settings__model');
+    function highlightModel(path: string) {
+      modelButtons.forEach(b => b.classList.toggle('is-active', b.getAttribute('data-model-path') === path));
+    }
+    const storedModel = localStorage.getItem('sumyu-live2d-model');
+    if (storedModel) highlightModel(storedModel);
+    else if (modelButtons.length) highlightModel(modelButtons[0].getAttribute('data-model-path') || '');
+    modelButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const path = btn.getAttribute('data-model-path') || '';
+        localStorage.setItem('sumyu-live2d-model', path);
+        highlightModel(path);
+        window.dispatchEvent(new CustomEvent('sumyu:live2d-change', { detail: { path } }));
+      });
+    });
+
+    // Sakura toggle
+    const sakuraToggle = document.getElementById('setting-sakura') as HTMLInputElement | null;
+    const initialSakura = localStorage.getItem('sumyu-sakura');
+    const sakuraDefault = initialSakura === null ? true : initialSakura === 'true';
+    if (sakuraToggle) sakuraToggle.checked = sakuraDefault;
+    function applySakura(on: boolean) {
+      const petals = document.getElementById('sakura-petals');
+      if (!petals) return;
+      petals.style.display = on ? '' : 'none';
+    }
+    applySakura(sakuraDefault);
+    sakuraToggle?.addEventListener('change', () => {
+      localStorage.setItem('sumyu-sakura', String(sakuraToggle.checked));
+      applySakura(sakuraToggle.checked);
+    });
+
+    // Theme color
+    const colorButtons = document.querySelectorAll('.sakura-settings__color');
+    const storedColor = localStorage.getItem('sumyu-theme-color');
+    if (storedColor) {
+      document.documentElement.setAttribute('data-theme-color', storedColor);
+      colorButtons.forEach(b => b.classList.toggle('is-active', b.getAttribute('data-color-id') === storedColor));
+    } else {
+      colorButtons.forEach(b => b.classList.toggle('is-active', b.getAttribute('data-color-id') === 'sakura'));
+    }
+    colorButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-color-id') || 'sakura';
+        if (document.documentElement.classList.contains('dark')) return;
+        document.documentElement.setAttribute('data-theme-color', id);
+        localStorage.setItem('sumyu-theme-color', id);
+        colorButtons.forEach(b => b.classList.toggle('is-active', b === btn));
+      });
+    });
+
+    // 恢复面板打开状态
+    if (settingsPanelOpen) {
+      document.getElementById('settings-panel')?.classList.add('is-open');
+      document.getElementById('settings-panel')?.setAttribute('aria-hidden', 'false');
+    }
+  }
+
+  initSettings();
+  document.addEventListener('astro:page-load', initSettings);
+</script>
+
+<style>
+  .sakura-settings {
+    position: fixed; inset: 0; z-index: 2200;
+    visibility: hidden;
+    transition: visibility var(--transition-base);
+  }
+  .sakura-settings.is-open { visibility: visible; }
+  .sakura-settings__overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.35);
+    backdrop-filter: blur(2px);
+    opacity: 0;
+    transition: opacity var(--transition-base);
+  }
+  .sakura-settings.is-open .sakura-settings__overlay { opacity: 1; }
+
+  /* 悬浮窗 (居中弹出, 而非左滑抽屉) */
+  .sakura-settings__popup {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -48%) scale(0.96);
+    width: 380px; max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 64px);
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    opacity: 0;
+    transition: opacity var(--transition-base), transform var(--transition-base);
+    z-index: 1;
+  }
+  .sakura-settings.is-open .sakura-settings__popup {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+
+  .sakura-settings__header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid var(--border-color);
+  }
+  .sakura-settings__header h3 {
+    font-size: 17px; color: var(--text-strong);
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .sakura-settings__header h3 iconify-icon { color: var(--sakura-primary); }
+  .sakura-settings__body { padding: 8px 20px; overflow-y: auto; flex: 1; }
+
+  .sakura-settings__row {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .sakura-settings__row:last-child { border-bottom: none; }
+  .sakura-settings__row--col { flex-direction: column; align-items: stretch; gap: 14px; }
+  .sakura-settings__row-label { display: flex; align-items: center; gap: 12px; }
+  .sakura-settings__row-label > iconify-icon {
+    font-size: 22px; color: var(--sakura-primary);
+  }
+  .sakura-settings__row-title { font-size: 14px; color: var(--text-strong); font-weight: 500; }
+  .sakura-settings__row-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* switch */
+  .sakura-switch {
+    position: relative; display: inline-block; width: 44px; height: 24px;
+    flex-shrink: 0;
+  }
+  .sakura-switch input { opacity: 0; width: 0; height: 0; }
+  .sakura-switch__slider {
+    position: absolute; inset: 0; cursor: pointer;
+    background: var(--border-color); border-radius: 24px;
+    transition: background var(--transition-fast);
+  }
+  .sakura-switch__slider::before {
+    content: ''; position: absolute; left: 3px; top: 3px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: transform var(--transition-fast);
+  }
+  .sakura-switch input:checked + .sakura-switch__slider { background: var(--sakura-primary); }
+  .sakura-switch input:checked + .sakura-switch__slider::before { transform: translateX(20px); }
+
+  /* color picker */
+  .sakura-settings__colors {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+  }
+  .sakura-settings__color {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 10px 4px; border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    transition: all var(--transition-fast);
+  }
+  .sakura-settings__color:hover { border-color: var(--swatch); }
+  .sakura-settings__color.is-active {
+    border-color: var(--swatch);
+    background: var(--swatch-soft);
+  }
+  .sakura-settings__color-dot {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--swatch);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
+  .sakura-settings__color-name { font-size: 11px; color: var(--text-base); }
+  .sakura-settings__color.is-active .sakura-settings__color-name {
+    color: var(--text-strong); font-weight: 500;
+  }
+
+  /* model switch */
+  .sakura-settings__models {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .sakura-settings__model {
+    padding: 6px 14px; border-radius: var(--radius-full);
+    background: var(--bg-soft); color: var(--text-base);
+    font-size: 12px; border: 1px solid var(--border-color);
+    transition: all var(--transition-fast);
+  }
+  .sakura-settings__model:hover { border-color: var(--sakura-primary); color: var(--sakura-primary); }
+  .sakura-settings__model.is-active {
+    background: var(--sakura-primary); color: #fff; border-color: var(--sakura-primary);
+  }
+</style>

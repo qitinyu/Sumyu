@@ -1,0 +1,260 @@
+---
+import Layout from '@layouts/Layout.astro';
+import { rssFriends } from '@/data/rss';
+
+// 石径: 显示友链的最新文章列表 (RSS 朋友圈)
+// 数据来源: 在 src/data/rss.ts 的 rssFriends 数组中维护
+const hasFriends = rssFriends.length > 0;
+// 只保留有 feed 地址的友链 (feed 为空的无法拉取文章)
+const friendsWithFeed = rssFriends.filter(f => f.feed && f.feed.trim());
+// 序列化为 JSON, 注入到页面供客户端脚本读取
+const feedsJson = JSON.stringify(friendsWithFeed.map(f => ({
+  name: f.name, url: f.url, feed: f.feed, avatar: f.avatar
+})));
+---
+
+<Layout title="石径 · 友链最新文章" description="石径 · 友链 RSS 朋友圈 · 汇聚友邻博客最新文章">
+  <div class="container section-page">
+    <header class="page-header">
+      <div class="page-header__crumb">萍踪 / 石径</div>
+      <h1 class="page-header__title"><iconify-icon icon="mdi:rss"></iconify-icon> 石径</h1>
+      <p class="page-header__subtitle">友链最新文章 · 如石径通幽, 见友邻所言</p>
+    </header>
+
+    <section class="info-section">
+      <h2><iconify-icon icon="mdi:rss" aria-hidden="true"></iconify-icon> RSS 朋友圈</h2>
+      <p>本博客提供 RSS 订阅源：<a href="/rss.xml">/rss.xml</a></p>
+      <p>「石径」汇聚已订阅友邻博客的最新文章列表, 一站式浏览友人的所思所写。如需加入, 可在留言板或邮件联系本站。</p>
+      {hasFriends ? (
+        <ul class="rss-friends">
+          {rssFriends.map(f => (
+            <li>
+              <a href={f.url} target="_blank" rel="noopener">
+                <img src={f.avatar} alt={f.name} loading="lazy" referrerpolicy="no-referrer" class="rss-friends__avatar" />
+                {f.name}
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p class="rss-empty">暂无订阅 · 等待友邻加入</p>
+      )}
+    </section>
+
+    <section class="info-section">
+      <h2><iconify-icon icon="mdi:note-text-outline" aria-hidden="true"></iconify-icon> 最新文章</h2>
+      <div id="rss-feed-list" class="rss-feed-list">
+        {friendsWithFeed.length === 0 ? (
+          <p class="rss-empty">暂无 RSS 订阅源 · 请在 <code>src/data/rss.ts</code> 的 <code>rssFriends</code> 中添加友链 RSS 地址。</p>
+        ) : (
+          <p class="rss-loading">正在加载友邻最新文章...</p>
+        )}
+      </div>
+    </section>
+  </div>
+
+  <!-- 注入 RSS 订阅源数据 (服务端 → 客户端), 客户端脚本通过 JSON.parse 读取 -->
+  <script type="application/json" id="rss-feeds-data" set:html={feedsJson}></script>
+</Layout>
+
+<script data-astro-rerun>
+  // ---- 拉取友链 RSS 文章列表 ----
+  // 从页面注入的 JSON 读取订阅源数据 (避免客户端硬编码)
+  // 多代理方案: allorigins (主) → rss2json (备), 解析 RSS XML → 文章列表
+  function initInfoRss() {
+    const dataEl = document.getElementById('rss-feeds-data');
+    const list = document.getElementById('rss-feed-list');
+    if (!dataEl || !list) return;
+
+    let FEEDS: { name: string; url: string; feed: string; avatar: string }[] = [];
+    try {
+      FEEDS = JSON.parse(dataEl.textContent || '[]');
+    } catch (_) {
+      list.innerHTML = '<p class="rss-empty">订阅源数据解析失败</p>';
+      return;
+    }
+
+    if (FEEDS.length === 0) {
+      // 无订阅源, 保留默认提示
+      return;
+    }
+
+    // 带 8 秒超时的 fetch
+    function fetchWithTimeout(url: string, ms: number): Promise<Response> {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), ms);
+      return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(timer));
+    }
+
+    // 方案 1: 通过 allorigins 代理获取原始 RSS XML, 客户端 DOMParser 解析
+    async function fetchViaAllorigins(feed: string): Promise<any[]> {
+      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(feed)}`;
+      const res = await fetchWithTimeout(proxyUrl, 8000);
+      const text = await res.text();
+      const doc = new DOMParser().parseFromString(text, 'text/xml');
+      const items = Array.from(doc.querySelectorAll('item')).slice(0, 5);
+      return items.map(item => {
+        const titleEl = item.querySelector('title');
+        const linkEl = item.querySelector('link');
+        const pubDateEl = item.querySelector('pubDate');
+        return {
+          title: titleEl?.textContent?.trim() || '无标题',
+          link: linkEl?.textContent?.trim() || '',
+          pubDate: pubDateEl?.textContent?.trim() || '',
+        };
+      });
+    }
+
+    // 方案 2: 通过 rss2json API 解析 (备选)
+    async function fetchViaRss2json(feed: string): Promise<any[]> {
+      const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed)}`;
+      const res = await fetchWithTimeout(apiUrl, 8000);
+      const data = await res.json();
+      if (data && data.items && data.items.length > 0) {
+        return data.items.slice(0, 5).map((it: any) => ({
+          title: it.title || '无标题',
+          link: it.link || '',
+          pubDate: it.pubDate || '',
+        }));
+      }
+      return [];
+    }
+
+    // 单个友链: 先试 allorigins, 失败再试 rss2json
+    async function fetchFeed(f: { name: string; url: string; feed: string; avatar: string }) {
+      try {
+        const items = await fetchViaAllorigins(f.feed);
+        if (items.length > 0) return { items, author: f.name, avatar: f.avatar, url: f.url };
+      } catch (_) {}
+      try {
+        const items = await fetchViaRss2json(f.feed);
+        if (items.length > 0) return { items, author: f.name, avatar: f.avatar, url: f.url };
+      } catch (_) {}
+      return null;
+    }
+
+    async function loadFeeds() {
+      list.innerHTML = '<p class="rss-loading">正在加载友邻最新文章 (0/' + FEEDS.length + ')...</p>';
+      const allItems: { title: string; link: string; pubDate: string; author: string; avatar: string }[] = [];
+      let successCount = 0;
+      let processed = 0;
+
+      // 并发拉取, 但限制并发数为 3 (避免代理被打满)
+      const queue = [...FEEDS];
+      const CONCURRENCY = 3;
+
+      async function worker() {
+        while (queue.length > 0) {
+          const f = queue.shift()!;
+          const result = await fetchFeed(f);
+          processed++;
+          if (result && result.items.length > 0) {
+            successCount++;
+            result.items.forEach(it => {
+              allItems.push({
+                title: it.title,
+                link: it.link || result.url,
+                pubDate: it.pubDate,
+                author: result.author,
+                avatar: result.avatar,
+              });
+            });
+          }
+          // 更新进度
+          list.innerHTML = '<p class="rss-loading">正在加载友邻最新文章 (' + processed + '/' + FEEDS.length + ')...</p>';
+        }
+      }
+
+      await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
+
+      if (allItems.length === 0) {
+        list.innerHTML = '<p class="rss-empty">暂未能加载任何文章 · 所有代理服务均失败, 请稍后再试</p>';
+        return;
+      }
+
+      // 按日期倒序
+      allItems.sort((a, b) => {
+        const ta = a.pubDate ? new Date(a.pubDate).getTime() : 0;
+        const tb = b.pubDate ? new Date(b.pubDate).getTime() : 0;
+        return tb - ta;
+      });
+
+      const itemsHtml = allItems.slice(0, 30).map(it => {
+        const d = it.pubDate ? new Date(it.pubDate) : null;
+        const dateStr = d && !isNaN(d.getTime()) ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : '';
+        return `
+          <a class="rss-feed-item" href="${it.link}" target="_blank" rel="noopener">
+            <div class="rss-feed-item__avatar"><img src="${it.avatar}" alt="${it.author}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" /></div>
+            <div class="rss-feed-item__body">
+              <div class="rss-feed-item__title">${it.title}</div>
+              <div class="rss-feed-item__meta"><span>${it.author}</span>${dateStr ? `<span>· ${dateStr}</span>` : ''}</div>
+            </div>
+          </a>
+        `;
+      }).join('');
+
+      const summary = `<p class="rss-summary">共加载 ${allItems.length} 篇文章 (来自 ${successCount} 个友邻, ${FEEDS.length - successCount} 个失败)</p>`;
+      list.innerHTML = summary + itemsHtml;
+    }
+
+    loadFeeds();
+  }
+
+  // 首次加载 + View Transitions 切换页面后均执行
+  initInfoRss();
+</script>
+
+<style>
+  .section-page { padding: 32px 24px 60px; max-width: 880px; }
+  .page-header { margin-bottom: 28px; }
+  .page-header__crumb { font-size: 12px; color: var(--text-muted); letter-spacing: 0.1em; margin-bottom: 6px; }
+  .page-header__title { font-size: 28px; color: var(--text-strong); display: inline-flex; align-items: center; gap: 8px; }
+  .page-header__title iconify-icon { color: var(--sakura-primary); }
+  .page-header__subtitle { color: var(--text-muted); font-size: 13px; margin-top: 8px; }
+
+  .info-section {
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg); padding: 22px 26px; margin-bottom: 18px;
+  }
+  .info-section h2 { font-size: 17px; color: var(--text-strong); margin-bottom: 12px; display: inline-flex; align-items: center; gap: 6px; }
+  .info-section h2 iconify-icon { color: var(--sakura-primary); }
+  .info-section p { font-size: 14px; color: var(--text-base); line-height: 1.9; margin-bottom: 6px; }
+  .info-section code { background: var(--bg-soft); padding: 2px 6px; border-radius: 4px; font-size: 12px; color: var(--sakura-primary); }
+
+  /* 友链列表: 带头像 */
+  .rss-friends { padding-left: 0; margin: 8px 0; list-style: none; display: flex; flex-wrap: wrap; gap: 10px; }
+  .rss-friends li { padding: 0; }
+  .rss-friends a {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--text-base); font-size: 13px;
+    padding: 4px 12px 4px 4px;
+    background: var(--bg-soft);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-full);
+    transition: all var(--transition-fast);
+  }
+  .rss-friends a:hover { border-color: var(--sakura-primary-soft); color: var(--sakura-primary); }
+  .rss-friends__avatar {
+    width: 24px; height: 24px; border-radius: 50%;
+    object-fit: cover; flex-shrink: 0;
+  }
+
+  .rss-empty { color: var(--text-muted); font-size: 13px; padding: 12px 0; }
+  .rss-loading { color: var(--text-muted); font-size: 13px; padding: 12px 0; }
+  .rss-summary { color: var(--text-faint); font-size: 12px; margin-bottom: 10px; }
+
+  .rss-feed-list { display: flex; flex-direction: column; gap: 10px; }
+  .rss-feed-item {
+    display: flex; gap: 12px; padding: 12px 14px;
+    background: var(--bg-soft); border-radius: var(--radius-md);
+    border: 1px solid var(--border-soft);
+    transition: all var(--transition-fast);
+    color: inherit;
+  }
+  .rss-feed-item:hover { border-color: var(--sakura-primary-soft); transform: translateX(2px); }
+  .rss-feed-item__avatar { width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; overflow: hidden; border: 1px solid var(--border-color); background: var(--bg-card); }
+  .rss-feed-item__avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .rss-feed-item__body { flex: 1; min-width: 0; }
+  .rss-feed-item__title { font-size: 14px; color: var(--text-strong); line-height: 1.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rss-feed-item__meta { font-size: 12px; color: var(--text-muted); margin-top: 4px; display: flex; gap: 8px; }
+</style>

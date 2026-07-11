@@ -1,0 +1,265 @@
+---
+import { HERO_IMAGES, HERO_SETTINGS, RANDOM_QUOTES, SOCIAL_LINKS, USER_PROFILE } from '@/config';
+---
+
+<section class="sakura-hero" id="hero">
+  <div class="sakura-hero__media">
+    <div class="sakura-hero-background" id="hero-media">
+      <div class="sakura-hero-background-stage" id="hero-media-stage">
+        {HERO_IMAGES.map((src, i) => (
+          <div class={`sakura-hero-background-slide${i === 0 ? ' is-active' : ''}`} style={`background-image: url('${src}')`}></div>
+        ))}
+      </div>
+      <div class="sakura-hero__overlay"></div>
+    </div>
+    <div class="sakura-hero__waves" aria-hidden="true">
+      <svg class="sakura-hero__wave-front" viewBox="0 0 1440 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0,40 C240,80 480,0 720,40 C960,80 1200,0 1440,40 L1440,80 L0,80 Z" fill="var(--bg-page)"></path>
+      </svg>
+      <svg class="sakura-hero__wave-foreground" viewBox="0 0 1440 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0,30 C240,60 480,0 720,30 C960,60 1200,0 1440,30 L1440,60 L0,60 Z" fill="var(--bg-page)" opacity="0.6"></path>
+      </svg>
+    </div>
+  </div>
+
+  <div class="sakura-hero__content">
+    <div class="sakura-hero-info-overlay">
+      <!-- 头像 + 用户名/签名 (同一行) -->
+      <div class="sakura-hero__profile">
+        <div class="sakura-hero__avatar-wrap">
+          <img class="sakura-hero__avatar" src={USER_PROFILE.avatar} alt={USER_PROFILE.name} width="120" height="120" onerror="this.src='/hero/avatar.svg'" />
+        </div>
+        <div class="sakura-hero__profile-text">
+          <h1 class="sakura-hero__name">{USER_PROFILE.name}</h1>
+          <p class="sakura-hero__signature">{USER_PROFILE.signature}</p>
+        </div>
+      </div>
+
+      <!-- 随机语录 (居中显示, 无背景框, 直接呈现) -->
+      {HERO_SETTINGS.enableQuotes && (
+        <div class="sakura-hero__quote">
+          <span class="sakura-hero__quote-text" id="hero-quote"
+            data-typewriter={HERO_SETTINGS.typewriter ? 'true' : 'false'}
+            data-speed={HERO_SETTINGS.typewriterSpeed}
+            data-quotes={JSON.stringify(RANDOM_QUOTES)}></span>
+        </div>
+      )}
+
+      <!-- 五个社交链接 -->
+      <div class="sakura-hero__socials">
+        {SOCIAL_LINKS.map((s: any) => (
+          <a class="sakura-hero__social" href={s.url} target="_blank" rel="noopener" title={s.name} aria-label={s.name}>
+            <i class={s.icon}></i>
+          </a>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <div class="sakura-hero__scroll">
+    <button type="button" class="sakura-scroll-down" id="hero-scroll-down" aria-label="向下滚动">
+      <iconify-icon icon="fa6-solid:angle-down" class="sakura-loop-float"></iconify-icon>
+    </button>
+  </div>
+</section>
+
+<!-- Font Awesome for brand icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
+
+<script data-astro-rerun>
+  // ---- Hero image rotation ----
+  const slides = document.querySelectorAll('.sakura-hero-background-slide');
+  let activeIdx = 0;
+  function showSlide(idx: number) {
+    slides.forEach((s, i) => s.classList.toggle('is-active', i === idx));
+    activeIdx = idx;
+  }
+  function nextSlide() { if (slides.length) showSlide((activeIdx + 1) % slides.length); }
+
+  let timer: any = setInterval(nextSlide, 6000);
+  const heroMedia = document.getElementById('hero-media');
+  heroMedia?.addEventListener('mouseenter', () => clearInterval(timer));
+  heroMedia?.addEventListener('mouseleave', () => { timer = setInterval(nextSlide, 6000); });
+
+  // ---- Random quotes typewriter (no background, centered) ----
+  const quoteEl = document.getElementById('hero-quote');
+  if (quoteEl) {
+    const quotes: string[] = JSON.parse(quoteEl.dataset.quotes || '[]');
+    const useTypewriter = quoteEl.dataset.typewriter === 'true';
+    const speed = parseInt(quoteEl.dataset.speed || '80', 10);
+    let qIdx = 0;
+
+    async function typeText(text: string) {
+      quoteEl.textContent = '';
+      if (!useTypewriter) { quoteEl.textContent = text; await new Promise(r => setTimeout(r, 5000)); return; }
+      for (let i = 0; i < text.length; i++) {
+        quoteEl.textContent += text[i];
+        await new Promise(r => setTimeout(r, speed));
+      }
+      await new Promise(r => setTimeout(r, 4000));
+    }
+    async function eraseText() {
+      if (!useTypewriter) return;
+      const text = quoteEl.textContent || '';
+      for (let i = text.length; i > 0; i--) {
+        quoteEl.textContent = text.slice(0, i);
+        await new Promise(r => setTimeout(r, speed / 2));
+      }
+    }
+    async function loop() {
+      while (true) {
+        await typeText(quotes[qIdx]);
+        await eraseText();
+        qIdx = (qIdx + 1) % quotes.length;
+      }
+    }
+    loop();
+  }
+
+  // ---- Scroll down ----
+  document.getElementById('hero-scroll-down')?.addEventListener('click', () => {
+    const target = document.getElementById('home-posts') || document.getElementById('content');
+    target?.scrollIntoView({ behavior: 'smooth' });
+  });
+</script>
+
+<style>
+  .sakura-hero {
+    position: relative; width: 100%; height: calc(100vh + var(--navbar-height)); min-height: calc(540px + var(--navbar-height));
+    margin-top: calc(-1 * var(--navbar-height));
+    overflow: hidden;
+  }
+  .sakura-hero__media { position: absolute; inset: 0; }
+  .sakura-hero-background { position: absolute; inset: 0; }
+  .sakura-hero-background-stage { position: absolute; inset: 0; }
+  .sakura-hero-background-slide {
+    position: absolute; inset: 0;
+    background-size: cover; background-position: center;
+    opacity: 0; transition: opacity 1.2s ease;
+    transform: scale(1.05);
+  }
+  .sakura-hero-background-slide.is-active { opacity: 1; transform: scale(1); animation: hero-zoom 8s ease-out both; }
+  @keyframes hero-zoom { from { transform: scale(1.08); } to { transform: scale(1); } }
+
+  .sakura-hero__overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.35) 60%, rgba(0,0,0,0.5) 100%);
+  }
+
+  /* waves */
+  .sakura-hero__waves { position: absolute; left: 0; right: 0; bottom: 0; height: 80px; pointer-events: none; }
+  .sakura-hero__wave-front, .sakura-hero__wave-foreground {
+    position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 100%;
+  }
+  .sakura-hero__wave-foreground { bottom: -8px; }
+
+  /* content overlay */
+  .sakura-hero__content {
+    position: absolute; inset: 0; z-index: 5;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 16px;
+  }
+  .sakura-hero-info-overlay {
+    display: flex; flex-direction: column; align-items: center; gap: 28px;
+    max-width: 720px; width: 100%;
+  }
+
+  /* 头像 + 用户名 + 签名 (同一行) */
+  .sakura-hero__profile {
+    display: flex; align-items: center; gap: 24px;
+  }
+  .sakura-hero__avatar-wrap {
+    flex-shrink: 0;
+    padding: 4px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(255,255,255,0.4), rgba(255,255,255,0.1));
+    backdrop-filter: blur(8px);
+    box-shadow: var(--shadow-lg);
+  }
+  .sakura-hero__avatar {
+    width: 120px; height: 120px; border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.6);
+    object-fit: cover;
+    display: block;
+  }
+  .sakura-hero__profile-text {
+    display: flex; flex-direction: column; gap: 6px;
+    text-align: left;
+  }
+  .sakura-hero__name {
+    font-family: var(--font-heading);
+    color: #fff; font-size: 44px; font-weight: 700;
+    line-height: 1.1; letter-spacing: 0.04em;
+    text-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  }
+  .sakura-hero__signature {
+    color: rgba(255,255,255,0.92);
+    font-size: 18px; letter-spacing: 0.08em;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.4);
+    font-family: var(--font-heading);
+  }
+
+  /* 随机语录: 居中显示, 无背景框 */
+  .sakura-hero__quote {
+    width: 100%;
+    text-align: center;
+    color: #fff;
+    font-size: 20px;
+    line-height: 1.8;
+    font-family: var(--font-heading);
+    letter-spacing: 0.04em;
+    min-height: 36px;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.6);
+    padding: 0 16px;
+  }
+  .sakura-hero__quote-text {
+    display: inline-block;
+  }
+
+  /* 五个社交链接 */
+  .sakura-hero__socials {
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+  }
+  .sakura-hero__social {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; border-radius: 50%;
+    color: #fff; background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.25);
+    font-size: 19px;
+    transition: all var(--transition-fast);
+    backdrop-filter: blur(8px);
+  }
+  .sakura-hero__social:hover {
+    background: var(--sakura-primary); border-color: var(--sakura-primary);
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: var(--shadow-pink);
+    color: #fff;
+  }
+  .sakura-hero__social i { line-height: 1; }
+
+  /* scroll down */
+  .sakura-hero__scroll {
+    position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+    z-index: 6;
+  }
+  .sakura-scroll-down {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(255,255,255,0.18); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    border: 1px solid rgba(255,255,255,0.3);
+    transition: all var(--transition-fast);
+  }
+  .sakura-scroll-down:hover { background: rgba(255,255,255,0.3); }
+
+  @media (max-width: 768px) {
+    .sakura-hero { height: 92vh; min-height: 480px; }
+    .sakura-hero__profile { flex-direction: column; gap: 14px; text-align: center; }
+    .sakura-hero__profile-text { text-align: center; align-items: center; }
+    .sakura-hero__name { font-size: 32px; }
+    .sakura-hero__signature { font-size: 14px; }
+    .sakura-hero__avatar { width: 90px; height: 90px; }
+    .sakura-hero__quote { font-size: 16px; }
+    .sakura-hero__social { width: 38px; height: 38px; font-size: 16px; }
+  }
+</style>

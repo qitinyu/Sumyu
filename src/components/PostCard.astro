@@ -1,0 +1,126 @@
+---
+import { formatDate } from '@/utils/posts';
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  post: CollectionEntry<'posts'>;
+  side?: 'left' | 'right';
+}
+const { post, side = 'left' } = Astro.props;
+const url = `/posts/${post.id}/`;
+const cover = post.data.heroImage ?? '/hero/hero-1.jpg';
+---
+
+<article class={`sakura-post-card ${side}`}>
+  <a class="sakura-post-card__cover aspect-video" href={url}>
+    <img src={cover} alt={post.data.title} loading="lazy" decoding="async" />
+  </a>
+  <div class="sakura-post-card__content has-cover">
+    <div class="sakura-post-card-info">
+      <div class="sakura-post-date post-date">
+        <span class="sakura-post-date__inner" title={`编辑于${formatDate(post.data.pubDate)}`}>
+          <iconify-icon icon="mdi:clock-outline" class="sakura-icon sakura-post-date__icon" aria-hidden="true"></iconify-icon>
+          <span class="sakura-post-date__label">编辑于</span>
+          <time datetime={post.data.pubDate.toISOString()} itemprop="dateModified">{formatDate(post.data.pubDate)}</time>
+        </span>
+      </div>
+      <h2 class="sakura-post-title sakura-post-card__title">
+        <a href={url} aria-label={`阅读全文：${post.data.title}`}>{post.data.title}</a>
+      </h2>
+      <div class="sakura-post-meta">
+        <div class="sakura-post-categories">
+          <a class="sakura-post-categories__link" href={`/categories/?category=${encodeURIComponent(post.data.category)}`}>
+            <iconify-icon icon="mdi:folder-open-outline" class="sakura-icon sakura-post-categories__icon" aria-hidden="true"></iconify-icon>
+            <span>{post.data.category}</span>
+          </a>
+        </div>
+        {post.data.tags.length > 0 && (
+          <div class="sakura-post-tags">
+            {post.data.tags.map((t, i) => (
+              <a class="sakura-post-tags__link" href={`/tags/?tag=${encodeURIComponent(t)}`}>
+                {i === 0 && <iconify-icon icon="mdi:tag-multiple" class="sakura-icon sakura-post-tags__icon" aria-hidden="true"></iconify-icon>}
+                {i > 0 && <span class="sakura-post-tags__sep">·</span>}
+                <span>{t}</span>
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+      <div class="sakura-post-excerpt sakura-post-card__excerpt">{post.data.description}</div>
+    </div>
+  </div>
+</article>
+
+<style>
+  .sakura-post-card {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-base);
+    position: relative;
+    overflow: hidden;
+  }
+  .sakura-post-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-pink);
+    border-color: var(--sakura-primary-soft);
+  }
+  .sakura-post-card.right { grid-template-columns: 1fr 280px; }
+  .sakura-post-card.right .sakura-post-card__cover { order: 2; }
+
+  .sakura-post-card__cover {
+    display: block; aspect-ratio: 16 / 9; overflow: hidden;
+    border-radius: var(--radius-md);
+    background: var(--bg-soft);
+  }
+  .sakura-post-card__cover img {
+    width: 100%; height: 100%; object-fit: cover;
+    transition: transform var(--transition-base);
+  }
+  .sakura-post-card:hover .sakura-post-card__cover img { transform: scale(1.06); }
+
+  .sakura-post-card__content { display: flex; flex-direction: column; justify-content: center; }
+  .sakura-post-card-info { display: flex; flex-direction: column; gap: 8px; }
+
+  .sakura-post-date { font-size: 12px; color: var(--text-muted); }
+  .sakura-post-date__inner { display: inline-flex; align-items: center; gap: 4px; }
+  .sakura-post-date__icon { font-size: 14px; }
+
+  .sakura-post-card__title {
+    font-size: 20px; line-height: 1.4;
+  }
+  .sakura-post-card__title a { color: var(--text-strong); }
+  .sakura-post-card__title a:hover { color: var(--sakura-primary); }
+
+  .sakura-post-meta {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+    font-size: 12px; color: var(--text-muted);
+  }
+  .sakura-post-categories__link, .sakura-post-tags__link {
+    display: inline-flex; align-items: center; gap: 3px;
+    color: var(--text-muted);
+  }
+  .sakura-post-categories__link:hover, .sakura-post-tags__link:hover { color: var(--sakura-primary); }
+  .sakura-post-tags__sep { margin: 0 4px; color: var(--text-faint); }
+
+  .sakura-post-card__excerpt {
+    font-size: 13px; color: var(--text-muted); line-height: 1.7;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    margin-top: 4px;
+  }
+
+  @media (max-width: 768px) {
+    .sakura-post-card, .sakura-post-card.right {
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+    .sakura-post-card.right .sakura-post-card__cover { order: 0; }
+    .sakura-post-card__cover { aspect-ratio: 16 / 9; }
+    .sakura-post-card__title { font-size: 17px; }
+  }
+</style>

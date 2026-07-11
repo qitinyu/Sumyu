@@ -1,0 +1,93 @@
+---
+import Layout from '@layouts/Layout.astro';
+import { getCategories, getPublishedPosts, formatDate } from '@/utils/posts';
+
+const categories = await getCategories();
+const posts = await getPublishedPosts();
+const selectedCategory = Astro.url.searchParams.get('category');
+const filteredPosts = selectedCategory
+  ? posts.filter(p => p.data.category === selectedCategory)
+  : posts;
+---
+
+<Layout title="分类" description="按分类浏览文章">
+  <div class="container categories-page">
+    <header class="page-header">
+      <h1 class="page-header__title"><iconify-icon icon="ant-design:appstore-filled" aria-hidden="true"></iconify-icon> 分类</h1>
+      <p class="page-header__subtitle">共 {categories.length} 个分类</p>
+    </header>
+
+    <div class="category-chips">
+      <a class={`category-chip${!selectedCategory ? ' is-active' : ''}`} href="/categories/">全部 ({posts.length})</a>
+      {categories.map(c => (
+        <a class={`category-chip${selectedCategory === c.name ? ' is-active' : ''}`} href={`/categories/?category=${encodeURIComponent(c.name)}`}>
+          <iconify-icon icon="mdi:folder-open-outline" aria-hidden="true"></iconify-icon>
+          {c.name} ({c.count})
+        </a>
+      ))}
+    </div>
+
+    <div class="category-list">
+      {filteredPosts.map(p => (
+        <a class="category-item" href={`/posts/${p.id}/`}>
+          <div class="category-item__cover">
+            <img src={p.data.image || '/hero/hero-1.jpg'} alt={p.data.title} loading="lazy" />
+          </div>
+          <div class="category-item__info">
+            <time>{formatDate(p.data.pubDate)}</time>
+            <h3>{p.data.title}</h3>
+            <p>{p.data.description}</p>
+            <div class="category-item__tags">
+              {p.data.tags.slice(0, 3).map(t => <span>#{t}</span>)}
+            </div>
+          </div>
+        </a>
+      ))}
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .categories-page { padding: 32px 24px 40px; max-width: 960px; }
+  .page-header { margin-bottom: 28px; text-align: center; }
+  .page-header__title { font-size: 28px; color: var(--text-strong); display: inline-flex; align-items: center; gap: 8px; }
+  .page-header__title iconify-icon { color: var(--sakura-primary); }
+  .page-header__subtitle { color: var(--text-muted); font-size: 13px; margin-top: 8px; }
+
+  .category-chips {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+    margin-bottom: 32px;
+  }
+  .category-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 14px; border-radius: var(--radius-full);
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    color: var(--text-base); font-size: 13px;
+    transition: all var(--transition-fast);
+  }
+  .category-chip:hover { border-color: var(--sakura-primary-soft); color: var(--sakura-primary); }
+  .category-chip.is-active { background: var(--sakura-primary); color: #fff; border-color: var(--sakura-primary); }
+
+  .category-list { display: flex; flex-direction: column; gap: 18px; }
+  .category-item {
+    display: grid; grid-template-columns: 200px 1fr; gap: 18px;
+    padding: 14px; border-radius: var(--radius-lg);
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    transition: all var(--transition-base);
+    color: inherit;
+  }
+  .category-item:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--sakura-primary-soft); }
+  .category-item__cover { aspect-ratio: 16/10; overflow: hidden; border-radius: var(--radius-md); }
+  .category-item__cover img { width: 100%; height: 100%; object-fit: cover; }
+  .category-item__info { display: flex; flex-direction: column; gap: 6px; }
+  .category-item__info time { font-size: 12px; color: var(--text-muted); }
+  .category-item__info h3 { font-size: 17px; color: var(--text-strong); }
+  .category-item:hover h3 { color: var(--sakura-primary); }
+  .category-item__info p { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+  .category-item__tags { display: flex; flex-wrap: wrap; gap: 8px; font-size: 11px; color: var(--sakura-primary); margin-top: 4px; }
+
+  @media (max-width: 640px) {
+    .category-item { grid-template-columns: 1fr; }
+    .category-item__cover { aspect-ratio: 16/9; }
+  }
+</style>

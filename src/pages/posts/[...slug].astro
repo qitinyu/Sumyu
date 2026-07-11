@@ -1,0 +1,392 @@
+---
+import Layout from '@layouts/Layout.astro';
+import Comment from '@components/Comment.astro';
+import { getPublishedPosts, getPostNeighbors, formatDate, readingTime } from '@/utils/posts';
+import { render } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+
+export async function getStaticPaths() {
+  const posts = await getPublishedPosts();
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+interface Props { post: CollectionEntry<'posts'>; }
+const { post } = Astro.props;
+const { Content } = await render(post);
+
+const { prev, next } = await getPostNeighbors(post.id);
+const cover = post.data.image || '';
+const minutes = (post.data as any).readingMinutes ?? 3;
+const isEncrypted = post.data.encrypted;
+const author = post.data.author;
+const licenseName = post.data.licenseName;
+---
+
+<Layout title={post.data.title} description={post.data.description}>
+  <article class="post-detail container">
+    {cover && (
+      <header class="post-header">
+        <div class="post-header__cover">
+          <img src={cover} alt={post.data.title} />
+          <div class="post-header__overlay"></div>
+        </div>
+        <div class="post-header__info">
+          <div class="post-header__categories">
+            <a href={`/categories/?category=${encodeURIComponent(post.data.category)}`}>
+              <iconify-icon icon="mdi:folder-open-outline" aria-hidden="true"></iconify-icon>
+              {post.data.category}
+            </a>
+          </div>
+          <h1 class="post-header__title">{post.data.title}</h1>
+          <div class="post-header__meta">
+            <span><iconify-icon icon="mdi:calendar-outline" aria-hidden="true"></iconify-icon> {formatDate(post.data.pubDate)}</span>
+            {post.data.updatedDate && (
+              <span><iconify-icon icon="mdi:update" aria-hidden="true"></iconify-icon> {formatDate(post.data.updatedDate)}</span>
+            )}
+            <span><iconify-icon icon="mdi:clock-outline" aria-hidden="true"></iconify-icon> {readingTime(minutes)}</span>
+            <span><iconify-icon icon="mdi:account-outline" aria-hidden="true"></iconify-icon> {author}</span>
+            {isEncrypted && (
+              <span class="post-header__lock"><iconify-icon icon="mdi:lock" aria-hidden="true"></iconify-icon> 加密文章</span>
+            )}
+          </div>
+          {post.data.tags.length > 0 && (
+            <div class="post-header__tags">
+              {post.data.tags.map((t) => (
+                <a href={`/tags/?tag=${encodeURIComponent(t)}`} class="post-tag">
+                  <iconify-icon icon="mdi:tag" aria-hidden="true"></iconify-icon>
+                  {t}
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      </header>
+    )}
+
+    {!cover && (
+      <header class="post-header-text">
+        <div class="post-header__categories">
+          <a href={`/categories/?category=${encodeURIComponent(post.data.category)}`}>
+            <iconify-icon icon="mdi:folder-open-outline" aria-hidden="true"></iconify-icon>
+            {post.data.category}
+          </a>
+        </div>
+        <h1 class="post-header__title-text">{post.data.title}</h1>
+        <div class="post-header__meta">
+          <span><iconify-icon icon="mdi:calendar-outline" aria-hidden="true"></iconify-icon> {formatDate(post.data.pubDate)}</span>
+          {post.data.updatedDate && (
+            <span><iconify-icon icon="mdi:update" aria-hidden="true"></iconify-icon> {formatDate(post.data.updatedDate)}</span>
+          )}
+          <span><iconify-icon icon="mdi:clock-outline" aria-hidden="true"></iconify-icon> {readingTime(minutes)}</span>
+          <span><iconify-icon icon="mdi:account-outline" aria-hidden="true"></iconify-icon> {author}</span>
+          {isEncrypted && (
+            <span class="post-header__lock"><iconify-icon icon="mdi:lock" aria-hidden="true"></iconify-icon> 加密文章</span>
+          )}
+        </div>
+        {post.data.tags.length > 0 && (
+          <div class="post-header__tags">
+            {post.data.tags.map((t) => (
+              <a href={`/tags/?tag=${encodeURIComponent(t)}`} class="post-tag">
+                <iconify-icon icon="mdi:tag" aria-hidden="true"></iconify-icon>
+                {t}
+              </a>
+            ))}
+          </div>
+        )}
+      </header>
+    )}
+
+    {isEncrypted ? (
+      <div class="post-encrypted" id="post-encrypted" data-pwd={post.data.password}>
+        <div class="post-encrypted__icon"><iconify-icon icon="mdi:lock"></iconify-icon></div>
+        <h3>这篇文章已加密</h3>
+        <p>请输入访问密码以查看内容</p>
+        <div class="post-encrypted__input-wrap">
+          <input type="password" id="post-password" placeholder="请输入密码" />
+          <button id="post-unlock-btn">解锁</button>
+        </div>
+        <p class="post-encrypted__hint" id="post-encrypted-hint"></p>
+        <div class="post-encrypted__content prose-sakura is-hidden" id="post-encrypted-content">
+          <Content />
+        </div>
+      </div>
+    ) : (
+      <div class="post-body">
+        <aside class="post-toc" id="post-toc" aria-label="目录">
+          <div class="post-toc__title">目录</div>
+          <nav class="post-toc__nav" id="post-toc-nav"></nav>
+        </aside>
+        <div class="post-content-area">
+          <div class="prose-sakura">
+            <Content />
+          </div>
+
+          <!-- 评论区: 传入 comment_id 作为 yuamli pageId, 实现每篇文章独立留言区 -->
+          <Comment pageId={post.data.comment_id || `/posts/${post.id}/`} />
+        </div>
+      </div>
+    )}
+
+    <nav class="post-neighbors">
+      {prev && (
+        <a class="post-neighbors__item post-neighbors__prev" href={`/posts/${prev.id}/`}>
+          <span class="post-neighbors__label"><iconify-icon icon="ri:arrow-left-line"></iconify-icon> 上一篇</span>
+          <span class="post-neighbors__title">{prev.data.title}</span>
+        </a>
+      )}
+      {next && (
+        <a class="post-neighbors__item post-neighbors__next" href={`/posts/${next.id}/`}>
+          <span class="post-neighbors__label">下一篇 <iconify-icon icon="ri:arrow-right-line"></iconify-icon></span>
+          <span class="post-neighbors__title">{next.data.title}</span>
+        </a>
+      )}
+    </nav>
+
+    <div class="post-copyright">
+      <p><strong>本文作者：</strong>{author}</p>
+      <p><strong>本文链接：</strong><a href={new URL(`/posts/${post.id}/`, Astro.site).href}>{new URL(`/posts/${post.id}/`, Astro.site).href}</a></p>
+      <p><strong>版权声明：</strong>本博客所有文章除特别声明外，均采用 {licenseName} 许可协议。转载请注明来自 <a href={Astro.site?.href}>Sumyu</a>。</p>
+    </div>
+  </article>
+</Layout>
+
+<script data-astro-rerun>
+  // ---- 表格横向滚动: 将所有 table 包裹在可滚动容器中 ----
+  document.querySelectorAll('.prose-sakura table').forEach((table) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'prose-table-wrap';
+    table.parentNode!.insertBefore(wrap, table);
+    wrap.appendChild(table);
+  });
+
+  // 构建目录：根据 h2/h3/h4 层级
+  const article = document.querySelector('.post-body .prose-sakura');
+  const tocNav = document.getElementById('post-toc-nav');
+  const toc = document.getElementById('post-toc');
+  if (article && tocNav) {
+    const heads = article.querySelectorAll('h2, h3, h4');
+    if (heads.length < 2) {
+      toc?.classList.add('is-hidden');
+    } else {
+      const ul = document.createElement('ul');
+      heads.forEach((h, i) => {
+        if (!h.id) h.id = `heading-${i}`;
+        const li = document.createElement('li');
+        // 层级: h2=0, h3=1, h4=2, 每级缩进 2em
+        const level = h.tagName === 'H4' ? 2 : h.tagName === 'H3' ? 1 : 0;
+        if (level > 0) li.classList.add('post-toc__sub');
+        if (level > 1) li.classList.add('post-toc__sub--deep');
+        const a = document.createElement('a');
+        a.href = `#${h.id}`;
+        a.textContent = h.textContent;
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          document.getElementById(h.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        li.appendChild(a);
+        ul.appendChild(li);
+      });
+      tocNav.appendChild(ul);
+
+      // 阅读进度追踪: 高亮当前可见的标题
+      const tocLinks = tocNav.querySelectorAll('a');
+      let currentActive: Element | null = null;
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            if (currentActive) currentActive.classList.remove('is-active');
+            currentActive = tocNav.querySelector(`a[href="#${e.target.id}"]`);
+            currentActive?.classList.add('is-active');
+          }
+        });
+      }, { rootMargin: '-80px 0px -65% 0px' });
+      heads.forEach((h) => observer.observe(h));
+    }
+  }
+
+  // ---- 加密文章解锁 ----
+  const encryptedBlock = document.getElementById('post-encrypted');
+  const unlockBtn = document.getElementById('post-unlock-btn');
+  const pwdInput = document.getElementById('post-password') as HTMLInputElement | null;
+  const hint = document.getElementById('post-encrypted-hint');
+  const content = document.getElementById('post-encrypted-content');
+  const expectedPwd = encryptedBlock?.getAttribute('data-pwd') || '';
+  if (encryptedBlock) {
+    encryptedBlock.setAttribute('data-pwd', expectedPwd);
+  }
+  function tryUnlock() {
+    if (!pwdInput || !hint || !content || !encryptedBlock) return;
+    const entered = pwdInput.value;
+    if (entered === expectedPwd) {
+      content.classList.remove('is-hidden');
+      hint.textContent = '解锁成功';
+      hint.style.color = 'var(--sakura-primary)';
+      encryptedBlock.querySelector('.post-encrypted__icon')?.classList.add('is-unlocked');
+    } else {
+      hint.textContent = '密码错误，请重试';
+      hint.style.color = '#e74c3c';
+    }
+  }
+  unlockBtn?.addEventListener('click', tryUnlock);
+  pwdInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') tryUnlock();
+  });
+</script>
+
+<style>
+  .post-detail { max-width: 1100px; margin: 0 auto; padding: 32px 24px 40px; }
+
+  /* 有封面图的头部 */
+  .post-header { position: relative; margin-bottom: 32px; border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-md); }
+  .post-header__cover { aspect-ratio: 21 / 9; }
+  .post-header__cover img { width: 100%; height: 100%; object-fit: cover; }
+  .post-header__overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.65) 100%); }
+  .post-header__info {
+    position: absolute; left: 0; right: 0; bottom: 0; padding: 28px 32px;
+    color: #fff;
+  }
+
+  /* 无封面图的文字头部 */
+  .post-header-text { margin-bottom: 32px; padding-top: 8px; }
+  .post-header__title-text {
+    font-size: 28px; color: var(--text-strong); margin: 10px 0;
+    line-height: 1.35; font-family: var(--font-heading);
+  }
+
+  .post-header__categories a {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12px; color: var(--sakura-primary-soft);
+    background: rgba(0,0,0,0.3); padding: 3px 10px; border-radius: var(--radius-full);
+  }
+  .post-header-text .post-header__categories a {
+    background: var(--sakura-primary-bg); color: var(--sakura-primary);
+  }
+  .post-header__categories a:hover { background: var(--sakura-primary); color: #fff; }
+
+  .post-header__title { font-size: 28px; color: #fff; margin: 10px 0; line-height: 1.35; text-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+  .post-header__meta { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--text-muted); }
+  .post-header__meta span { display: inline-flex; align-items: center; gap: 4px; }
+  .post-header__tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .post-tag {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 12px; color: #fff;
+    background: rgba(255,255,255,0.18); padding: 3px 10px; border-radius: var(--radius-full);
+    transition: all var(--transition-fast);
+  }
+  .post-header-text .post-tag {
+    color: var(--sakura-primary); background: var(--sakura-primary-bg);
+  }
+  .post-tag:hover { background: var(--sakura-primary); color: #fff; }
+
+  /* 文章主体：左侧TOC + 右侧内容 */
+  .post-body { position: relative; display: grid; grid-template-columns: 1fr; gap: 0; }
+
+  .post-toc {
+    position: sticky; top: calc(var(--navbar-height) + 16px);
+    align-self: start;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 16px 14px;
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+    font-size: 12px;
+    display: none;
+    order: -1;
+  }
+  .post-toc__title { font-weight: 600; color: var(--sakura-primary); margin-bottom: 10px; font-size: 13px; }
+  .post-toc__nav ul { display: flex; flex-direction: column; gap: 4px; }
+  .post-toc__nav a { color: var(--text-muted); display: block; padding: 4px 8px; border-radius: 4px; transition: all var(--transition-fast); }
+  .post-toc__nav a:hover { color: var(--sakura-primary); background: var(--bg-soft); }
+  .post-toc__nav a.is-active {
+    color: var(--sakura-primary); font-weight: 600;
+    background: var(--sakura-primary-bg);
+  }
+  .post-toc__sub { padding-left: 0; margin-left: 1.6em; }
+  .post-toc__sub--deep { margin-left: 3.2em; }
+
+  .post-content-area { min-width: 0; overflow-x: hidden; }
+
+  @media (min-width: 1100px) {
+    .post-body { grid-template-columns: 180px 1fr; gap: 28px; }
+    .post-toc { display: block; }
+  }
+
+  /* 上下篇 */
+  .post-neighbors {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    margin-top: 48px;
+  }
+  .post-neighbors__item {
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 16px 20px; border-radius: var(--radius-md);
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    transition: all var(--transition-fast);
+  }
+  .post-neighbors__item:hover { border-color: var(--sakura-primary-soft); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+  .post-neighbors__next { text-align: right; }
+  .post-neighbors__label { font-size: 12px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px; }
+  .post-neighbors__title { color: var(--text-strong); font-size: 15px; }
+  .post-neighbors__item:hover .post-neighbors__title { color: var(--sakura-primary); }
+
+  @media (max-width: 640px) {
+    .post-neighbors { grid-template-columns: 1fr; }
+    .post-neighbors__next { text-align: left; }
+    .post-header__info { padding: 20px; }
+    .post-header__title, .post-header__title-text { font-size: 22px; }
+  }
+
+  /* 版权声明 */
+  .post-copyright {
+    margin-top: 32px; padding: 18px 22px;
+    background: var(--sakura-primary-bg);
+    border-left: 3px solid var(--sakura-primary);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    font-size: 13px; color: var(--text-base); line-height: 1.9;
+  }
+  .post-copyright p { margin: 0; }
+  .post-copyright a { color: var(--sakura-primary-deep); }
+
+  /* 加密文章 */
+  .post-encrypted {
+    text-align: center;
+    padding: 48px 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+  }
+  .post-encrypted__icon {
+    font-size: 48px; color: var(--sakura-primary);
+    margin-bottom: 16px;
+    transition: all var(--transition-base);
+  }
+  .post-encrypted__icon.is-unlocked { color: #4caf50; transform: scale(1.1); }
+  .post-encrypted h3 { font-size: 20px; color: var(--text-strong); margin-bottom: 8px; }
+  .post-encrypted p { color: var(--text-muted); font-size: 14px; margin-bottom: 18px; }
+  .post-encrypted__input-wrap {
+    display: flex; gap: 8px; justify-content: center; max-width: 360px; margin: 0 auto;
+  }
+  .post-encrypted__input-wrap input {
+    flex: 1; padding: 10px 14px;
+    border: 1px solid var(--border-color); border-radius: var(--radius-md);
+    background: var(--bg-page); color: var(--text-strong);
+    outline: none; font-size: 14px;
+    transition: border-color var(--transition-fast);
+  }
+  .post-encrypted__input-wrap input:focus { border-color: var(--sakura-primary); }
+  .post-encrypted__input-wrap button {
+    padding: 10px 22px;
+    background: var(--sakura-primary); color: #fff;
+    border-radius: var(--radius-md); font-size: 14px;
+    transition: all var(--transition-fast);
+  }
+  .post-encrypted__input-wrap button:hover { background: var(--sakura-primary-deep); }
+  .post-encrypted__hint { margin-top: 12px; font-size: 13px; min-height: 18px; }
+  .post-encrypted__content { text-align: left; margin-top: 32px; }
+
+  .post-header__lock { color: var(--sakura-primary); font-weight: 500; }
+</style>

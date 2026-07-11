@@ -1,0 +1,73 @@
+---
+import { footerConfig } from '@/data/footer';
+
+const { brand, copyright, powered, icp, customLines } = footerConfig;
+const year = copyright.year || new Date().getFullYear();
+---
+
+<footer class="sakura-footer">
+  <div class="sakura-footer__inner container">
+    <!-- 第一行: 品牌标语 -->
+    <div class="sakura-footer__brand">
+      <span class="sakura-footer__title">{brand.title}</span>
+      <span class="sakura-footer__sep">·</span>
+      <span class="sakura-footer__subtitle">{brand.subtitle}</span>
+    </div>
+
+    <!-- 第二行: 版权 -->
+    <div class="sakura-footer__row">
+      Copyright © {year} {copyright.owner}
+      <span class="sakura-footer__sep">·</span>
+      <a href={copyright.siteUrl} target="_blank" rel="noopener">{copyright.siteUrl}</a>
+      <span class="sakura-footer__sep">·</span>
+      <a href={`mailto:${copyright.email}`}>{copyright.email}</a>
+    </div>
+
+    <!-- 第三行: 技术栈 -->
+    <div class="sakura-footer__row">
+      Powered by {powered.framework} &amp; {powered.theme}
+      <span class="sakura-footer__sep">·</span> Version {powered.version}
+    </div>
+
+    <!-- 第四行: 备案信息 (可选) -->
+    {icp && (
+      <div class="sakura-footer__row sakura-footer__icp" set:html={icp} />
+    )}
+
+    <!-- 自定义额外行 (可选) -->
+    {customLines.map((line) => (
+      <div class="sakura-footer__row" set:html={line} />
+    ))}
+  </div>
+</footer>
+
+<style>
+  .sakura-footer {
+    margin-top: 60px;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border-color);
+    padding: 16px 0 10px;
+  }
+  .sakura-footer__inner {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    text-align: center;
+  }
+  .sakura-footer__brand {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin-bottom: 0;
+  }
+  .sakura-footer__title {
+    font-size: 14px; font-weight: 600; color: var(--text-strong);
+    letter-spacing: 0.05em;
+  }
+  .sakura-footer__subtitle {
+    font-size: 12px; color: var(--sakura-primary); letter-spacing: 0.1em;
+  }
+  .sakura-footer__row {
+    color: var(--text-faint); font-size: 11px; line-height: 1.4;
+  }
+  .sakura-footer__row a { color: var(--text-muted); transition: color var(--transition-fast); }
+  .sakura-footer__row a:hover { color: var(--sakura-primary); }
+  .sakura-footer__sep { margin: 0 6px; color: var(--text-faint); opacity: 0.6; }
+  .sakura-footer__icp { margin-top: 4px; opacity: 0.8; }
+</style>

@@ -1,0 +1,30 @@
+{
+	"Version": 3,
+	"FileReferences": {
+		"Moc": "cmtt.moc3",
+		"Textures": [
+			"cmtt/texture_00.png",
+			"cmtt/texture_01.png",
+			"cmtt/texture_02.png",
+			"cmtt/texture_03.png",
+			"cmtt/texture_04.png"
+		],
+		"Physics": "cmtt.physics3.json",
+		"DisplayInfo": "cmtt.cdi3.json"
+	},
+	"Groups": [
+		{
+			"Target": "Parameter",
+			"Name": "LipSync",
+			"Ids": []
+		},
+		{
+			"Target": "Parameter",
+			"Name": "EyeBlink",
+			"Ids": [
+				"ParamEyeLOpen",
+				"ParamEyeROpen"
+			]
+		}
+	]
+}

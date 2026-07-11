@@ -1,0 +1,102 @@
+---
+import Layout from '@layouts/Layout.astro';
+import Comment from '@components/Comment.astro';
+import { friendLinks } from '@/data/links';
+---
+
+<Layout title="幽竹 · 友链" description="幽竹 · 友情链接">
+  <div class="container section-page">
+    <header class="page-header">
+      <div class="page-header__crumb">萍踪 / 幽竹</div>
+      <h1 class="page-header__title"><iconify-icon icon="ant-design:global-outlined" aria-hidden="true"></iconify-icon> 幽竹</h1>
+      <p class="page-header__subtitle">友情链接 · 愿与各位博客友邻一同前行</p>
+    </header>
+
+    <div class="links-grid">
+      {friendLinks.map(l => (
+        <a class="link-card" href={l.url} target="_blank" rel="noopener">
+          <div class="link-card__avatar">
+            <img src={l.avatar} alt={l.name} loading="lazy" />
+          </div>
+          <div class="link-card__info">
+            <div class="link-card__name">{l.name}</div>
+            <div class="link-card__desc">{l.desc}</div>
+            <div class="link-card__tags">
+              {l.tags.map(t => <span>#{t}</span>)}
+            </div>
+          </div>
+          <iconify-icon icon="ri:external-link-line" class="link-card__ext" aria-hidden="true"></iconify-icon>
+        </a>
+      ))}
+    </div>
+
+    <section class="links-apply">
+      <h2><iconify-icon icon="mdi:link-variant" aria-hidden="true"></iconify-icon> 申请友链</h2>
+      <p>请通过下方留言或邮件联系，附上以下信息：</p>
+      <ul>
+        <li>站点名称</li>
+        <li>站点 URL</li>
+        <li>站点描述（一句话）</li>
+        <li>头像 URL</li>
+        <li>标签（可选）</li>
+      </ul>
+      <p class="links-apply__note">🌸 友链需为原创博客，且定期更新，本站保留最终决定权。</p>
+    </section>
+
+    <!-- 页面底部独立 yuamli 评论区 (pageId='youzhu', 用于友链申请与留言) -->
+    <div class="links-comment-section">
+      <Comment pageId="youzhu" />
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .section-page { padding: 32px 24px 60px; max-width: var(--container-max); }
+  .page-header { margin-bottom: 28px; }
+  .page-header__crumb { font-size: 12px; color: var(--text-muted); letter-spacing: 0.1em; margin-bottom: 6px; }
+  .page-header__title { font-size: 28px; color: var(--text-strong); display: inline-flex; align-items: center; gap: 8px; }
+  .page-header__title iconify-icon { color: var(--sakura-primary); }
+  .page-header__subtitle { color: var(--text-muted); font-size: 13px; margin-top: 8px; }
+
+  .links-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px; margin-bottom: 36px;
+  }
+  .link-card {
+    display: flex; gap: 14px; padding: 18px;
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    transition: all var(--transition-base);
+    position: relative;
+    color: inherit;
+  }
+  .link-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--sakura-primary-soft); }
+  .link-card__avatar {
+    width: 60px; height: 60px; flex-shrink: 0;
+    border-radius: 50%; overflow: hidden;
+    border: 2px solid var(--sakura-primary-soft);
+  }
+  .link-card__avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .link-card__info { flex: 1; min-width: 0; }
+  .link-card__name { font-size: 16px; color: var(--text-strong); font-weight: 600; }
+  .link-card__desc { font-size: 13px; color: var(--text-muted); margin: 4px 0 8px; line-height: 1.5; }
+  .link-card__tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .link-card__tags span { font-size: 11px; color: var(--sakura-primary); }
+  .link-card__ext { position: absolute; top: 16px; right: 16px; color: var(--text-faint); }
+
+  .links-apply {
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg); padding: 24px 28px;
+  }
+  .links-apply h2 { font-size: 18px; color: var(--text-strong); margin-bottom: 10px; display: inline-flex; align-items: center; gap: 6px; }
+  .links-apply h2 iconify-icon { color: var(--sakura-primary); }
+  .links-apply p { font-size: 14px; color: var(--text-base); line-height: 1.8; }
+  .links-apply ul { padding-left: 22px; margin: 8px 0; }
+  .links-apply li { font-size: 13px; color: var(--text-base); line-height: 1.9; list-style: disc; }
+  .links-apply__note { margin-top: 12px; color: var(--sakura-primary) !important; }
+
+  /* 页面底部评论区 */
+  .links-comment-section {
+    margin-top: 36px;
+  }
+</style>

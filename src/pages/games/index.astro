@@ -1,0 +1,349 @@
+---
+import Layout from '@layouts/Layout.astro';
+import { gameList, gamesCarousel, reflectionText } from '@/data/games';
+---
+
+<Layout title="闲游 · 游戏" description="闲游 · Sumyu 玩过的游戏">
+  <div class="container section-page">
+    <header class="page-header">
+      <div class="page-header__crumb">墨竹 / 闲游</div>
+      <h1 class="page-header__title"><iconify-icon icon="mdi:gamepad-variant-outline"></iconify-icon> 闲游</h1>
+      <p class="page-header__subtitle">游戏 · 沉浸过的虚拟世界</p>
+    </header>
+
+    {gamesCarousel.enabled && gamesCarousel.images.length > 0 && (
+      <div class="games-carousel" id="games-carousel" data-interval={gamesCarousel.interval}>
+        <div class="games-carousel__track" id="games-carousel-track">
+          {gamesCarousel.images.map((src, i) => (
+            <div class={`games-carousel__slide${i === 0 ? ' is-active' : ''}`} data-idx={i}>
+              <img src={src} alt={`banner ${i + 1}`} loading={i === 0 ? 'eager' : 'lazy'} decoding="async" />
+            </div>
+          ))}
+        </div>
+        {gamesCarousel.images.length > 1 && (
+          <Fragment>
+            <button type="button" class="games-carousel__nav games-carousel__prev" id="games-carousel-prev" aria-label="上一张">
+              <iconify-icon icon="ri:arrow-left-s-line"></iconify-icon>
+            </button>
+            <button type="button" class="games-carousel__nav games-carousel__next" id="games-carousel-next" aria-label="下一张">
+              <iconify-icon icon="ri:arrow-right-s-line"></iconify-icon>
+            </button>
+            <div class="games-carousel__dots" id="games-carousel-dots">
+              {gamesCarousel.images.map((_, i) => (
+                <button type="button" class={`games-carousel__dot${i === 0 ? ' is-active' : ''}`} data-idx={i} aria-label={`第 ${i + 1} 张`}></button>
+              ))}
+            </div>
+          </Fragment>
+        )}
+      </div>
+    )}
+
+    {reflectionText && (
+      <div class="games-reflection">
+        <iconify-icon icon="mdi:quote-open-outline" class="games-reflection__mark" aria-hidden="true"></iconify-icon>
+        <p class="games-reflection__text">{reflectionText}</p>
+        <iconify-icon icon="mdi:quote-closing-outline" class="games-reflection__mark games-reflection__mark--end" aria-hidden="true"></iconify-icon>
+      </div>
+    )}
+
+    <!-- 大卡片: 左侧文字内容 + 右侧 logo 尺寸图片 -->
+    <div class="games-grid">
+      {gameList.map((g) => (
+        <a class="game-card" href={g.url} target="_blank" rel="noopener noreferrer" data-id={g.id}>
+          <div class="game-card__body">
+            <div class="game-card__head">
+              <h3 class="game-card__title">{g.name}</h3>
+              <span class="game-card__rating">
+                <iconify-icon icon="mdi:star" aria-hidden="true"></iconify-icon>
+                {g.rating.toFixed(1)}
+              </span>
+            </div>
+            <p class="game-card__desc">{g.description}</p>
+            <div class="game-card__tags">
+              {g.tags.map((t) => <span class="game-card__tag">#{t}</span>)}
+            </div>
+            <div class="game-card__meta">
+              <span class="game-card__meta-item">
+                <iconify-icon icon="mdi:calendar-month-outline" aria-hidden="true"></iconify-icon>
+                {g.playTime}
+              </span>
+              <span class="game-card__meta-item">
+                <iconify-icon icon="mdi:domain" aria-hidden="true"></iconify-icon>
+                {g.company}
+              </span>
+              <span class="game-card__meta-item">
+                <iconify-icon icon="mdi:calendar-blank-outline" aria-hidden="true"></iconify-icon>
+                {g.releaseDate}
+              </span>
+            </div>
+            <span class="game-card__enter">
+              前往官网
+              <iconify-icon icon="ri:external-link-line" aria-hidden="true"></iconify-icon>
+            </span>
+          </div>
+          <div class="game-card__logo">
+            <img src={g.imageUrl} alt={g.name} loading="lazy" decoding="async" />
+          </div>
+        </a>
+      ))}
+    </div>
+  </div>
+</Layout>
+
+<script>
+  // ---- 顶部轮播图 ----
+  // 使用 astro:page-load 确保 View Transitions 切换页面后脚本重新执行
+  function initGamesCarousel() {
+    const carousel = document.getElementById('games-carousel');
+    if (carousel) {
+      const slides = carousel.querySelectorAll('.games-carousel__slide');
+      const dots = carousel.querySelectorAll('.games-carousel__dot');
+      const prevBtn = document.getElementById('games-carousel-prev');
+      const nextBtn = document.getElementById('games-carousel-next');
+      const interval = parseInt(carousel.getAttribute('data-interval') || '5000', 10);
+      let curIdx = 0;
+      let timer: any;
+
+      function goTo(idx: number) {
+        curIdx = (idx + slides.length) % slides.length;
+        slides.forEach((s, i) => s.classList.toggle('is-active', i === curIdx));
+        dots.forEach((d, i) => d.classList.toggle('is-active', i === curIdx));
+      }
+
+      function next() { goTo(curIdx + 1); }
+      function prev() { goTo(curIdx - 1); }
+
+      function resetTimer() {
+        clearInterval(timer);
+        if (slides.length > 1) {
+          timer = setInterval(next, interval);
+        }
+      }
+
+      nextBtn?.addEventListener('click', () => { next(); resetTimer(); });
+      prevBtn?.addEventListener('click', () => { prev(); resetTimer(); });
+      dots.forEach((d, i) => {
+        d.addEventListener('click', () => { goTo(i); resetTimer(); });
+      });
+
+      resetTimer();
+    }
+  }
+  document.addEventListener('astro:page-load', initGamesCarousel);
+  if (document.readyState !== 'loading') {
+    initGamesCarousel();
+  } else {
+    document.addEventListener('DOMContentLoaded', initGamesCarousel, { once: true });
+  }
+</script>
+
+<style>
+  .section-page { padding: 32px 24px 60px; max-width: 1080px; }
+  .page-header { margin-bottom: 20px; }
+  .page-header__crumb { font-size: 12px; color: var(--text-muted); letter-spacing: 0.1em; margin-bottom: 6px; }
+  .page-header__title { font-size: 28px; color: var(--text-strong); display: inline-flex; align-items: center; gap: 8px; }
+  .page-header__title iconify-icon { color: var(--sakura-primary); }
+  .page-header__subtitle { color: var(--text-muted); font-size: 13px; margin-top: 8px; }
+
+  /* 顶部轮播图 */
+  .games-carousel {
+    position: relative;
+    margin-bottom: 24px;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    aspect-ratio: 3/1;
+    background: var(--bg-soft);
+  }
+  .games-carousel__track { width: 100%; height: 100%; position: relative; }
+  .games-carousel__slide {
+    position: absolute; inset: 0;
+    opacity: 0; transition: opacity 0.6s ease;
+    pointer-events: none;
+  }
+  .games-carousel__slide.is-active { opacity: 1; pointer-events: auto; }
+  .games-carousel__slide img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+  }
+  .games-carousel__nav {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(255,255,255,0.7); color: var(--text-strong);
+    border: none; cursor: pointer; font-size: 22px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all var(--transition-fast);
+    backdrop-filter: blur(4px);
+  }
+  .games-carousel__nav:hover {
+    background: rgba(255,255,255,0.95); color: var(--sakura-primary);
+  }
+  .games-carousel__prev { left: 12px; }
+  .games-carousel__next { right: 12px; }
+  .games-carousel__dots {
+    position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 6px;
+  }
+  .games-carousel__dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(255,255,255,0.5); border: none; cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+  .games-carousel__dot.is-active { background: #fff; transform: scale(1.3); }
+
+  /* 闲游感悟 (引言横幅) */
+  .games-reflection {
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    margin-bottom: 28px; padding: 18px 24px;
+    background: linear-gradient(135deg, var(--sakura-primary-bg) 0%, var(--bg-card) 100%);
+    border: 1px solid var(--sakura-primary-soft);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+  }
+  .games-reflection__mark {
+    font-size: 28px; color: var(--sakura-primary-soft);
+    flex-shrink: 0;
+  }
+  .games-reflection__mark--end { transform: rotate(180deg); align-self: flex-end; }
+  .games-reflection__text {
+    flex: 1; text-align: center;
+    font-family: var(--font-heading);
+    font-size: 16px; color: var(--sakura-primary-deep);
+    line-height: 1.7; letter-spacing: 0.05em;
+    font-weight: 500;
+  }
+
+  /* 游戏卡片网格: 2 列 (每个卡片: 左侧文字 + 右侧 logo) */
+  .games-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+  }
+
+  .game-card {
+    display: flex;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: all var(--transition-base);
+    color: inherit;
+    cursor: pointer;
+    position: relative;
+  }
+  .game-card::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--sakura-primary), var(--sakura-primary-soft));
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+    z-index: 2;
+  }
+  .game-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--sakura-primary-soft);
+  }
+  .game-card:hover::before { opacity: 1; }
+
+  /* 左侧文字内容 (占主要空间) */
+  .game-card__body {
+    flex: 1; min-width: 0;
+    padding: 16px 18px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .game-card__head {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .game-card__title {
+    font-size: 18px; color: var(--text-strong);
+    line-height: 1.35;
+    flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    transition: color var(--transition-fast);
+  }
+  .game-card:hover .game-card__title { color: var(--sakura-primary); }
+  .game-card__rating {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 8px; border-radius: var(--radius-full);
+    background: rgba(243, 156, 18, 0.12);
+    color: #f39c12;
+    font-size: 12px; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .game-card__rating iconify-icon { font-size: 13px; }
+
+  .game-card__desc {
+    font-size: 14px; color: var(--text-muted);
+    line-height: 1.6;
+    font-family: var(--font-heading);
+    margin: 0;
+  }
+
+  .game-card__tags {
+    display: flex; flex-wrap: wrap; gap: 5px 7px;
+  }
+  .game-card__tag {
+    font-size: 11px; color: var(--sakura-primary);
+    background: var(--sakura-primary-bg);
+    padding: 2px 8px; border-radius: var(--radius-full);
+    line-height: 1.5;
+  }
+
+  .game-card__meta {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 12px;
+    margin-top: auto; padding-top: 8px;
+    border-top: 1px solid var(--border-soft);
+    font-size: 11px; color: var(--text-muted);
+  }
+  .game-card__meta-item {
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .game-card__meta-item iconify-icon { font-size: 13px; }
+  .game-card__enter {
+    display: inline-flex; align-items: center; gap: 2px;
+    margin-left: auto;
+    color: var(--sakura-primary);
+    transition: gap var(--transition-fast);
+  }
+  .game-card:hover .game-card__enter { gap: 5px; }
+  .game-card__enter iconify-icon { font-size: 13px; }
+
+  /* 右侧 logo: 小尺寸方形, 不是整张封面 */
+  .game-card__logo {
+    flex-shrink: 0;
+    width: 90px; height: 90px;
+    margin: 16px 18px 16px 0;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--bg-soft);
+    box-shadow: var(--shadow-sm);
+    align-self: center;
+  }
+  .game-card__logo img {
+    width: 100%; height: 100%; object-fit: cover;
+    transition: transform var(--transition-base);
+  }
+  .game-card:hover .game-card__logo img { transform: scale(1.08); }
+
+  @media (max-width: 768px) {
+    .games-carousel { aspect-ratio: 16/9; }
+    .games-carousel__nav { width: 32px; height: 32px; font-size: 18px; }
+    .games-reflection { padding: 14px 18px; gap: 10px; }
+    .games-reflection__mark { font-size: 22px; }
+    .games-reflection__text { font-size: 14px; }
+    .games-grid { grid-template-columns: 1fr; gap: 14px; }
+    .game-card__body { padding: 12px 14px; }
+    .game-card__title { font-size: 16px; }
+    .game-card__desc { font-size: 13px; }
+    .game-card__logo { width: 72px; height: 72px; margin: 12px 14px 12px 0; }
+  }
+
+  @media (max-width: 480px) {
+    .game-card__logo { width: 60px; height: 60px; margin: 10px 12px 10px 0; }
+    .game-card__body { padding: 10px 12px; gap: 6px; }
+    .game-card__title { font-size: 15px; }
+    .game-card__desc { font-size: 12px; }
+    .game-card__meta { gap: 8px; font-size: 10px; }
+  }
+</style>

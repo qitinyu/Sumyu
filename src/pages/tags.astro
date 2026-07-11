@@ -1,0 +1,98 @@
+---
+import Layout from '@layouts/Layout.astro';
+import { getTags, getPublishedPosts } from '@/utils/posts';
+
+const tags = await getTags();
+const posts = await getPublishedPosts();
+const selectedTag = Astro.url.searchParams.get('tag');
+const filteredPosts = selectedTag
+  ? posts.filter(p => p.data.tags.includes(selectedTag))
+  : [];
+
+const maxCount = Math.max(...tags.map(t => t.count), 1);
+function tagSize(c: number) {
+  const ratio = c / maxCount;
+  return 13 + Math.round(ratio * 12); // 13px - 25px
+}
+---
+
+<Layout title="标签" description="按标签浏览文章">
+  <div class="container tags-page">
+    <header class="page-header">
+      <h1 class="page-header__title"><iconify-icon icon="ant-design:tags-filled" aria-hidden="true"></iconify-icon> 标签</h1>
+      <p class="page-header__subtitle">共 {tags.length} 个标签</p>
+    </header>
+
+    <div class="tags-cloud">
+      {tags.map(t => (
+        <a class={`tag-item${selectedTag === t.name ? ' is-active' : ''}`}
+           href={`/tags/?tag=${encodeURIComponent(t.name)}`}
+           style={`font-size: ${tagSize(t.count)}px`}>
+          <iconify-icon icon="mdi:tag" aria-hidden="true"></iconify-icon>
+          {t.name}
+          <span class="tag-count">{t.count}</span>
+        </a>
+      ))}
+    </div>
+
+    {selectedTag && (
+      <div class="tag-results">
+        <h2 class="tag-results__title">标签「{selectedTag}」下的 {filteredPosts.length} 篇文章</h2>
+        <div class="tag-results__list">
+          {filteredPosts.map(p => (
+            <a class="tag-result-item" href={`/posts/${p.id}/`}>
+              <span class="tag-result-date">{p.data.pubDate.getFullYear()}-{String(p.data.pubDate.getMonth()+1).padStart(2,'0')}-{String(p.data.pubDate.getDate()).padStart(2,'0')}</span>
+              <span class="tag-result-title">{p.data.title}</span>
+              <span class="tag-result-cat">{p.data.category}</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
+</Layout>
+
+<style>
+  .tags-page { padding: 32px 24px 40px; max-width: 960px; }
+  .page-header { margin-bottom: 28px; text-align: center; }
+  .page-header__title { font-size: 28px; color: var(--text-strong); display: inline-flex; align-items: center; gap: 8px; }
+  .page-header__title iconify-icon { color: var(--sakura-primary); }
+  .page-header__subtitle { color: var(--text-muted); font-size: 13px; margin-top: 8px; }
+
+  .tags-cloud {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 14px;
+    padding: 24px; margin-bottom: 32px;
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+  }
+  .tag-item {
+    display: inline-flex; align-items: center; gap: 4px;
+    color: var(--text-base); transition: all var(--transition-fast);
+    line-height: 1.4;
+  }
+  .tag-item iconify-icon { color: var(--sakura-primary); opacity: 0.7; }
+  .tag-item:hover { color: var(--sakura-primary); transform: translateY(-2px); }
+  .tag-item.is-active { color: var(--sakura-primary); font-weight: 600; }
+  .tag-count {
+    font-size: 11px; color: var(--text-muted);
+    background: var(--bg-soft); padding: 1px 6px; border-radius: 8px;
+  }
+
+  .tag-results__title { font-size: 17px; color: var(--text-strong); margin-bottom: 16px; }
+  .tag-results__list { display: flex; flex-direction: column; gap: 8px; }
+  .tag-result-item {
+    display: grid; grid-template-columns: 100px 1fr 80px; gap: 14px; align-items: center;
+    padding: 12px 16px; border-radius: var(--radius-md);
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    transition: all var(--transition-fast); color: inherit;
+  }
+  .tag-result-item:hover { border-color: var(--sakura-primary-soft); transform: translateX(4px); }
+  .tag-result-date { font-size: 12px; color: var(--text-muted); }
+  .tag-result-title { color: var(--text-strong); font-size: 14px; }
+  .tag-result-item:hover .tag-result-title { color: var(--sakura-primary); }
+  .tag-result-cat { font-size: 11px; color: var(--sakura-primary); text-align: right; }
+  @media (max-width: 640px) {
+    .tag-result-item { grid-template-columns: 1fr; gap: 4px; }
+    .tag-result-cat { text-align: left; }
+  }
+</style>

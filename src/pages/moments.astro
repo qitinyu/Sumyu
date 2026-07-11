@@ -1,0 +1,74 @@
+---
+import Layout from '@layouts/Layout.astro';
+
+const moments = [
+  { date: '2025-07-01', content: '终于把这个 Astro 仿制版搭起来了，看着和原站几乎一模一样，超有成就感 🌸', mood: '开心', images: [] },
+  { date: '2025-06-28', content: '今天下了一场大雨，雨是神的烟花，这句话真美。', mood: '平静', images: ['https://picsum.photos/seed/rain1/400/300'] },
+  { date: '2025-06-20', content: '把博客主题又调整了一遍，每次都忍不住要折腾。', mood: '折腾', images: [] },
+  { date: '2025-06-15', content: '周末去爬山了，山顶的风景真不错，云海翻涌，宛如仙境。', mood: '舒畅', images: ['https://picsum.photos/seed/mountain1/400/300', 'https://picsum.photos/seed/mountain2/400/300'] },
+  { date: '2025-06-08', content: '读完了一本好书，心灵得到治愈。', mood: '治愈', images: [] },
+  { date: '2025-06-01', content: '儿童节快乐！愿我们都保持童心。', mood: '怀念', images: [] },
+];
+---
+
+<Layout title="动态" description="日常动态 · Memos">
+  <div class="container moments-page">
+    <header class="page-header">
+      <h1 class="page-header__title"><iconify-icon icon="ant-design:compass-filled" aria-hidden="true"></iconify-icon> 动态</h1>
+      <p class="page-header__subtitle">记录日常的点滴瞬间</p>
+    </header>
+
+    <div class="moments-timeline">
+      {moments.map(m => (
+        <article class="moment-card">
+          <div class="moment-card__dot"></div>
+          <div class="moment-card__body">
+            <div class="moment-card__head">
+              <time>{m.date}</time>
+              <span class="moment-card__mood">{m.mood}</span>
+            </div>
+            <p class="moment-card__content">{m.content}</p>
+            {m.images.length > 0 && (
+              <div class="moment-card__images">
+                {m.images.map(src => <img src={src} alt="" loading="lazy" />)}
+              </div>
+            )}
+          </div>
+        </article>
+      ))}
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .moments-page { padding: 32px 24px 40px; max-width: 720px; }
+  .page-header { margin-bottom: 28px; text-align: center; }
+  .page-header__title { font-size: 28px; color: var(--text-strong); display: inline-flex; align-items: center; gap: 8px; }
+  .page-header__title iconify-icon { color: var(--sakura-primary); }
+  .page-header__subtitle { color: var(--text-muted); font-size: 13px; margin-top: 8px; }
+
+  .moments-timeline { position: relative; padding-left: 28px; }
+  .moments-timeline::before {
+    content: ''; position: absolute; left: 8px; top: 4px; bottom: 4px; width: 2px;
+    background: linear-gradient(180deg, var(--sakura-primary), var(--sakura-primary-soft));
+  }
+  .moment-card { position: relative; margin-bottom: 20px; }
+  .moment-card__dot {
+    position: absolute; left: -27px; top: 8px; width: 14px; height: 14px;
+    border-radius: 50%; background: var(--sakura-primary);
+    border: 3px solid var(--bg-page);
+  }
+  .moment-card__body {
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    border-radius: var(--radius-md); padding: 16px 20px;
+  }
+  .moment-card__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .moment-card__head time { font-size: 12px; color: var(--text-muted); }
+  .moment-card__mood {
+    font-size: 11px; color: var(--sakura-primary);
+    background: var(--sakura-primary-bg); padding: 2px 10px; border-radius: var(--radius-full);
+  }
+  .moment-card__content { font-size: 14px; line-height: 1.8; color: var(--text-base); }
+  .moment-card__images { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .moment-card__images img { width: 120px; height: 90px; object-fit: cover; border-radius: var(--radius-sm); }
+</style>

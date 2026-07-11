@@ -1,0 +1,128 @@
+---
+import Layout from '@layouts/Layout.astro';
+import { SOCIAL_LINKS } from '@/config';
+import { aboutData } from '@/data/about';
+
+// 处理 desc 中的换行符 (用于 <br /> 展示)
+const descLines = aboutData.desc.split('\n').filter(l => l.trim());
+---
+
+<Layout title="陋室 · 关于" description="陋室 · 关于本博客的介绍">
+  <div class="container section-page">
+    <header class="page-header">
+      <div class="page-header__crumb">萍踪 / 陋室</div>
+      <h1 class="page-header__title"><iconify-icon icon="mdi:home-outline"></iconify-icon> 陋室</h1>
+      <p class="page-header__subtitle">关于本博客 · {aboutData.motto}</p>
+    </header>
+
+    <div class="about-card">
+      <div class="about-card__avatar">
+        <img src={aboutData.avatar} alt={aboutData.name} width="120" height="120" referrerpolicy="no-referrer" />
+        <span class="about-card__status">🌸</span>
+      </div>
+      <h2 class="about-card__name">{aboutData.name}</h2>
+      <p class="about-card__subtitle">{aboutData.subtitle}</p>
+      <p class="about-card__desc">
+        {descLines.map((line, i) => (
+          <Fragment>
+            {i > 0 && <br />}
+            {line}
+          </Fragment>
+        ))}
+      </p>
+
+      <div class="about-card__socials">
+        {SOCIAL_LINKS.map((s: any) => (
+          <a class="sakura-icon-btn" href={s.url} title={s.name} target="_blank" rel="noopener">
+            <i class={s.icon}></i>
+          </a>
+        ))}
+      </div>
+    </div>
+
+    {aboutData.siteFeatures.length > 0 && (
+      <section class="about-section">
+        <h2><iconify-icon icon="mdi:star-four-points" aria-hidden="true"></iconify-icon> 关于本站</h2>
+        <p>本站是一个使用 <a href="https://astro.build" target="_blank" rel="noopener">Astro</a> 构建的纯静态博客, 仿 Hugo Sakura 主题, 在保留原版风格的基础上做了大量定制优化。</p>
+        <ul>
+          {aboutData.siteFeatures.map(feature => <li>{feature}</li>)}
+        </ul>
+      </section>
+    )}
+
+    {aboutData.hobbies.length > 0 && (
+      <section class="about-section">
+        <h2><iconify-icon icon="mdi:heart" aria-hidden="true"></iconify-icon> 兴趣爱好</h2>
+        <div class="about-hobbies">
+          {aboutData.hobbies.map(h => (
+            <span class="about-hobby">
+              <iconify-icon icon={h.icon} aria-hidden="true"></iconify-icon>
+              {h.label}
+            </span>
+          ))}
+        </div>
+      </section>
+    )}
+
+    {aboutData.techStack.length > 0 && (
+      <section class="about-section">
+        <h2><iconify-icon icon="mdi:file-document-outline" aria-hidden="true"></iconify-icon> 技术栈</h2>
+        <div class="about-stack">
+          {aboutData.techStack.map(tech => <span>{tech}</span>)}
+        </div>
+      </section>
+    )}
+  </div>
+</Layout>
+
+<style>
+  .section-page { padding: 32px 24px 60px; max-width: 880px; }
+  .page-header { margin-bottom: 28px; }
+  .page-header__crumb { font-size: 12px; color: var(--text-muted); letter-spacing: 0.1em; margin-bottom: 6px; }
+  .page-header__title { font-size: 28px; color: var(--text-strong); display: inline-flex; align-items: center; gap: 8px; }
+  .page-header__title iconify-icon { color: var(--sakura-primary); }
+  .page-header__subtitle { color: var(--text-muted); font-size: 13px; margin-top: 8px; }
+
+  .about-card {
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg); padding: 40px 32px; text-align: center;
+    box-shadow: var(--shadow-md); margin-bottom: 24px;
+  }
+  .about-card__avatar { position: relative; display: inline-block; margin-bottom: 16px; }
+  .about-card__avatar img {
+    width: 120px; height: 120px; border-radius: 50%;
+    border: 4px solid var(--sakura-primary-soft); box-shadow: var(--shadow-pink);
+  }
+  .about-card__status {
+    position: absolute; right: 4px; bottom: 4px;
+    background: var(--bg-card); width: 32px; height: 32px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow-sm); font-size: 16px;
+  }
+  .about-card__name { font-size: 26px; color: var(--text-strong); }
+  .about-card__subtitle { font-size: 14px; color: var(--sakura-primary); letter-spacing: 0.1em; margin: 6px 0 14px; }
+  .about-card__desc { font-size: 14px; color: var(--text-base); line-height: 1.9; }
+  .about-card__socials { display: flex; justify-content: center; gap: 8px; margin-top: 20px; }
+
+  .about-section {
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg); padding: 24px 28px; margin-bottom: 18px;
+  }
+  .about-section h2 {
+    font-size: 18px; color: var(--text-strong); margin-bottom: 14px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .about-section h2 iconify-icon { color: var(--sakura-primary); }
+  .about-section p { font-size: 14px; line-height: 1.9; color: var(--text-base); margin-bottom: 10px; }
+  .about-section ul { padding-left: 20px; }
+  .about-section li { font-size: 14px; line-height: 2; color: var(--text-base); list-style: disc; }
+
+  .about-hobbies, .about-stack { display: flex; flex-wrap: wrap; gap: 10px; }
+  .about-hobby, .about-stack span {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: var(--radius-full);
+    background: var(--sakura-primary-bg); color: var(--sakura-primary-deep);
+    font-size: 13px;
+  }
+  .about-stack span { background: var(--bg-soft); color: var(--text-base); }
+</style>

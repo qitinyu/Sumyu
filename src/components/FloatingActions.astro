@@ -1,0 +1,100 @@
+---
+// FloatingActions.astro — Scroll direction button + Home button
+// Hidden on mobile (native scroll available)
+---
+
+<div class="floating-actions" id="floating-actions">
+  <button type="button" class="floating-actions__btn" id="float-scroll-btn" aria-label="滚动到底部">
+    <iconify-icon icon="ri:arrow-down-line" id="float-scroll-icon"></iconify-icon>
+  </button>
+  <a class="floating-actions__btn" href="/" aria-label="返回首页">
+    <iconify-icon icon="ri:home-4-line"></iconify-icon>
+  </a>
+</div>
+
+<script is:inline>
+(function() {
+  var scrollBtn = document.getElementById('float-scroll-btn');
+  var scrollIcon = document.getElementById('float-scroll-icon');
+  if (!scrollBtn || !scrollIcon) return;
+
+  var lastScrollY = window.scrollY || 0;
+  var scrollingDown = false;
+
+  function onScroll() {
+    var currentY = window.scrollY || 0;
+    if (currentY > lastScrollY) {
+      scrollingDown = true;
+    } else if (currentY < lastScrollY) {
+      scrollingDown = false;
+    }
+    lastScrollY = currentY;
+
+    if (scrollingDown) {
+      scrollIcon.setAttribute('icon', 'ri:arrow-down-line');
+      scrollBtn.setAttribute('aria-label', '滚动到底部');
+    } else {
+      scrollIcon.setAttribute('icon', 'ri:arrow-up-line');
+      scrollBtn.setAttribute('aria-label', '回到顶部');
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  scrollBtn.addEventListener('click', function() {
+    if (scrollingDown) {
+      window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  });
+
+  // Default state: at top of page, show arrow down
+  scrollIcon.setAttribute('icon', 'ri:arrow-down-line');
+  scrollBtn.setAttribute('aria-label', '滚动到底部');
+})();
+</script>
+
+<style>
+  .floating-actions {
+    position: fixed;
+    bottom: 32px;
+    right: 24px;
+    z-index: 950;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .floating-actions__btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--bg-card, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.08));
+    color: var(--text-muted, #999);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    cursor: pointer;
+    text-decoration: none;
+    opacity: 0.7;
+    transition: all 0.2s ease;
+  }
+
+  .floating-actions__btn:hover {
+    background: var(--sakura-primary, #DF9193);
+    color: #fff;
+    border-color: var(--sakura-primary, #DF9193);
+    transform: translateY(-2px);
+    opacity: 1;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  }
+
+  /* Hidden on mobile — native scroll is sufficient */
+  @media (max-width: 768px) {
+    .floating-actions { display: none; }
+  }
+</style>

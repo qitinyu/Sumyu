@@ -1,0 +1,411 @@
+---
+import Layout from '@layouts/Layout.astro';
+import Comment from '@components/Comment.astro';
+import { lesList, lesPageMeta } from '@/data/les';
+
+// 每页显示数量 (3x3 = 9 个卡片)
+const PAGE_SIZE = 9;
+const totalPages = Math.max(1, Math.ceil(lesList.length / PAGE_SIZE));
+
+// 状态颜色映射
+const statusClass = (status: string) => {
+  if (status.includes('完结')) return 'is-completed';
+  if (status.includes('连载')) return 'is-ongoing';
+  return 'is-default';
+};
+---
+
+<Layout title={lesPageMeta.title} description={lesPageMeta.description}>
+  <div class="container section-page">
+    <header class="page-header" id="les-page-header">
+      <div class="page-header__crumb">{lesPageMeta.breadcrumb}</div>
+      <h1 class="page-header__title">
+        <iconify-icon icon={lesPageMeta.icon}></iconify-icon>
+        {lesPageMeta.heading}
+      </h1>
+      <p class="page-header__subtitle">{lesPageMeta.subtitle}</p>
+    </header>
+
+    {lesList.length === 0 ? (
+      <div class="empty-state">
+        <iconify-icon icon={lesPageMeta.emptyIcon} aria-hidden="true"></iconify-icon>
+        <p>{lesPageMeta.emptyText}</p>
+      </div>
+    ) : (
+      <Fragment>
+        <div class="les-head-info">
+          <span>共 {lesList.length} 部作品 · 第 <span id="les-page-current">1</span> / {totalPages} 页</span>
+        </div>
+
+        <div class="les-grid" id="les-list">
+          {lesList.map((item, i) => (
+            <a
+              class="les-card"
+              data-page={Math.floor(i / PAGE_SIZE) + 1}
+              style={`--card-delay: ${(i % PAGE_SIZE) * 0.05}s`}
+              href={item.url || '#'}
+              target={item.url ? '_blank' : undefined}
+              rel={item.url ? 'noopener noreferrer' : undefined}
+              aria-disabled={item.url ? undefined : 'true'}
+            >
+              <div class="les-card__cover">
+                <img src={item.cover} alt={item.title} loading="lazy" decoding="async" />
+                <span class={`les-card__status ${statusClass(item.status)}`}>{item.status}</span>
+              </div>
+              <div class="les-card__body">
+                <h3 class="les-card__title">{item.title}</h3>
+                <span class="les-card__type">{item.type}</span>
+
+                <div class="les-card__info">
+                  <div class="les-card__info-row">
+                    <span class="les-card__info-label">
+                      <iconify-icon icon="mdi:microphone-outline" aria-hidden="true"></iconify-icon>
+                      CV
+                    </span>
+                    <span class="les-card__info-value">{item.cv}</span>
+                  </div>
+                  <div class="les-card__info-row">
+                    <span class="les-card__info-label">
+                      <iconify-icon icon="mdi:heart-multiple-outline" aria-hidden="true"></iconify-icon>
+                      CP
+                    </span>
+                    <span class="les-card__info-value">{item.cp}</span>
+                  </div>
+                </div>
+
+                <p class="les-card__comment">
+                  <iconify-icon icon="mdi:format-quote-open" aria-hidden="true"></iconify-icon>
+                  {item.comment}
+                </p>
+
+                {item.url && (
+                  <span class="les-card__enter">
+                    前往
+                    <iconify-icon icon="ri:arrow-right-s-line" aria-hidden="true"></iconify-icon>
+                  </span>
+                )}
+              </div>
+              <div class="les-card__deco"></div>
+            </a>
+          ))}
+        </div>
+
+        {totalPages > 1 && (
+          <nav class="les-pagination" id="les-pagination" data-total-pages={totalPages} data-page-size={PAGE_SIZE}>
+            <button type="button" class="les-pagination__btn" id="les-prev">← 上一页</button>
+            <div class="les-pagination__pages" id="les-page-numbers">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                <button type="button" class={`les-pagination__page${n === 1 ? ' is-active' : ''}`} data-page={n}>{n}</button>
+              ))}
+            </div>
+            <button type="button" class="les-pagination__btn" id="les-next">下一页 →</button>
+          </nav>
+        )}
+      </Fragment>
+    )}
+
+    <!-- 页面底部独立 yuamli 评论区 (pageId='qingyan', 与文章评论区隔离) -->
+    <div class="les-comment-section">
+      <Comment pageId="qingyan" />
+    </div>
+  </div>
+</Layout>
+
+<script>
+  // ---- 分页控制 (与博文/日记页一致的页数控制) ----
+  // 使用 astro:page-load 确保 View Transitions 切换页面后脚本重新执行
+  function initLesPagination() {
+    const pagination = document.getElementById('les-pagination');
+    if (!pagination) return;
+    const total = parseInt(pagination.dataset.totalPages || '1', 10);
+    let currentPage = 1;
+
+    const items = document.querySelectorAll('#les-list .les-card');
+    const pageNumBtns = pagination.querySelectorAll('.les-pagination__page');
+    const prevBtn = document.getElementById('les-prev') as HTMLButtonElement | null;
+    const nextBtn = document.getElementById('les-next') as HTMLButtonElement | null;
+    const currentLabel = document.getElementById('les-page-current');
+    const pageHeader = document.getElementById('les-page-header');
+
+    function goTo(page: number) {
+      page = Math.min(Math.max(1, page), total);
+      currentPage = page;
+      items.forEach(item => {
+        const p = parseInt(item.getAttribute('data-page') || '1', 10);
+        (item as HTMLElement).style.display = p === page ? '' : 'none';
+      });
+      pageNumBtns.forEach(btn => {
+        const p = parseInt(btn.getAttribute('data-page') || '1', 10);
+        btn.classList.toggle('is-active', p === page);
+      });
+      if (currentLabel) currentLabel.textContent = String(page);
+      if (prevBtn) prevBtn.disabled = page <= 1;
+      if (nextBtn) nextBtn.disabled = page >= total;
+      // 更新 URL 参数
+      const url = new URL(window.location.href);
+      if (page > 1) {
+        url.searchParams.set('page', String(page));
+      } else {
+        url.searchParams.delete('page');
+      }
+      history.replaceState(null, '', url.toString());
+      // 滚动到页面标题处
+      pageHeader?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // 初始化: 根据 URL 参数显示对应页 (不滚动)
+    const urlPage = parseInt(new URLSearchParams(window.location.search).get('page') || '1', 10);
+    if (urlPage > 1 && urlPage <= total) {
+      // 直接设置显示, 不滚动
+      currentPage = urlPage;
+      items.forEach(item => {
+        const p = parseInt(item.getAttribute('data-page') || '1', 10);
+        (item as HTMLElement).style.display = p === urlPage ? '' : 'none';
+      });
+      pageNumBtns.forEach(btn => {
+        const p = parseInt(btn.getAttribute('data-page') || '1', 10);
+        btn.classList.toggle('is-active', p === urlPage);
+      });
+      if (currentLabel) currentLabel.textContent = String(urlPage);
+      if (prevBtn) prevBtn.disabled = urlPage <= 1;
+      if (nextBtn) nextBtn.disabled = urlPage >= total;
+    } else {
+      items.forEach(item => {
+        const p = parseInt(item.getAttribute('data-page') || '1', 10);
+        (item as HTMLElement).style.display = p === 1 ? '' : 'none';
+      });
+    }
+
+    pageNumBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        goTo(parseInt(btn.getAttribute('data-page') || '1', 10));
+      });
+    });
+    prevBtn?.addEventListener('click', () => goTo(currentPage - 1));
+    nextBtn?.addEventListener('click', () => goTo(currentPage + 1));
+  }
+  document.addEventListener('astro:page-load', initLesPagination);
+  if (document.readyState !== 'loading') {
+    initLesPagination();
+  } else {
+    document.addEventListener('DOMContentLoaded', initLesPagination, { once: true });
+  }
+</script>
+
+<style>
+  .section-page { padding: 32px 24px 60px; max-width: var(--container-max); }
+  .page-header { margin-bottom: 20px; }
+  .page-header__crumb { font-size: 12px; color: var(--text-muted); letter-spacing: 0.1em; margin-bottom: 6px; }
+  .page-header__title {
+    font-size: 28px; color: var(--text-strong);
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .page-header__title iconify-icon { color: var(--sakura-primary); }
+  .page-header__subtitle { color: var(--text-muted); font-size: 13px; margin-top: 8px; }
+
+  .les-head-info {
+    font-size: 13px; color: var(--text-muted);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+    scroll-margin-top: calc(var(--navbar-height, 60px) + 16px);
+  }
+
+  .empty-state {
+    text-align: center; padding: 80px 24px; color: var(--text-muted);
+  }
+  .empty-state iconify-icon {
+    font-size: 64px; color: var(--sakura-primary-soft); margin-bottom: 14px;
+  }
+  .empty-state p { font-size: 14px; }
+
+  /* 卡片网格: 3 列 (3x3 = 9 per page) */
+  .les-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+
+  .les-card {
+    position: relative;
+    display: flex;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: all var(--transition-base);
+    color: inherit;
+    cursor: pointer;
+    animation: les-card-fadein 0.4s ease backwards;
+    animation-delay: var(--card-delay, 0s);
+  }
+  @keyframes les-card-fadein {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .les-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--sakura-primary-soft);
+  }
+
+  /* 左侧封面 */
+  .les-card__cover {
+    position: relative;
+    width: 130px; flex-shrink: 0;
+    overflow: hidden;
+    background: var(--bg-soft);
+  }
+  .les-card__cover img {
+    width: 100%; height: 100%; object-fit: cover;
+    display: block;
+    transition: transform 0.5s ease;
+  }
+  .les-card:hover .les-card__cover img { transform: scale(1.08); }
+
+  .les-card__cover::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0) 60%, rgba(0,0,0,0.25) 100%);
+    pointer-events: none;
+  }
+  .les-card__status {
+    position: absolute; top: 6px; left: 6px;
+    padding: 2px 8px; border-radius: var(--radius-full);
+    font-size: 10px; font-weight: 500;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  }
+  .les-card__status.is-completed {
+    background: rgba(76, 175, 80, 0.85); color: #fff;
+  }
+  .les-card__status.is-ongoing {
+    background: rgba(223, 145, 147, 0.9); color: #fff;
+  }
+  .les-card__status.is-default {
+    background: rgba(0, 0, 0, 0.55); color: #fff;
+  }
+
+  /* 右侧内容 */
+  .les-card__body {
+    flex: 1; min-width: 0;
+    padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .les-card__title {
+    font-size: 14px; color: var(--text-strong);
+    line-height: 1.35;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    transition: color var(--transition-fast);
+  }
+  .les-card:hover .les-card__title { color: var(--sakura-primary); }
+  .les-card__type {
+    font-size: 10px; color: var(--sakura-primary-deep);
+    background: var(--sakura-primary-bg);
+    align-self: flex-start;
+    padding: 1px 7px; border-radius: var(--radius-full);
+  }
+
+  .les-card__info {
+    display: flex; flex-direction: column; gap: 2px;
+    margin-top: 4px;
+    padding: 5px 7px;
+    background: var(--bg-soft);
+    border-radius: var(--radius-sm);
+  }
+  .les-card__info-row {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 10px;
+  }
+  .les-card__info-label {
+    display: inline-flex; align-items: center; gap: 2px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    min-width: 26px;
+  }
+  .les-card__info-label iconify-icon { font-size: 11px; }
+  .les-card__info-value {
+    color: var(--text-base);
+    flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  .les-card__comment {
+    font-size: 11px; color: var(--text-muted);
+    line-height: 1.55;
+    margin-top: 3px;
+    padding: 6px 8px;
+    background: linear-gradient(135deg, var(--sakura-primary-bg) 0%, transparent 100%);
+    border-left: 2px solid var(--sakura-primary);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    font-family: var(--font-heading);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .les-card__comment iconify-icon {
+    font-size: 11px; color: var(--sakura-primary-soft);
+    margin-right: 2px; vertical-align: -1px;
+  }
+
+  .les-card__enter {
+    display: inline-flex; align-items: center; gap: 1px;
+    margin-top: auto; padding-top: 4px;
+    font-size: 10px; color: var(--sakura-primary);
+    transition: gap var(--transition-fast);
+  }
+  .les-card:hover .les-card__enter { gap: 4px; }
+  .les-card__enter iconify-icon { font-size: 12px; }
+
+  /* 装饰条 */
+  .les-card__deco {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--sakura-primary), var(--sakura-primary-soft));
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+    z-index: 2;
+  }
+  .les-card:hover .les-card__deco { opacity: 1; }
+
+  /* 分页 */
+  .les-pagination {
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    margin-top: 40px;
+  }
+  .les-pagination__btn {
+    padding: 8px 18px; border-radius: var(--radius-full);
+    border: 1px solid var(--border-color); color: var(--text-base);
+    font-size: 13px; transition: all var(--transition-fast);
+    cursor: pointer; background: transparent;
+  }
+  .les-pagination__btn:hover:not(:disabled) { border-color: var(--sakura-primary); color: var(--sakura-primary); }
+  .les-pagination__btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .les-pagination__pages { display: flex; gap: 6px; }
+  .les-pagination__page {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: 50%;
+    color: var(--text-muted); font-size: 13px; cursor: pointer;
+    transition: all var(--transition-fast); background: transparent;
+  }
+  .les-pagination__page:hover { color: var(--sakura-primary); background: var(--sakura-primary-bg); }
+  .les-pagination__page.is-active { background: var(--sakura-primary); color: #fff; }
+
+  /* 页面底部评论区 */
+  .les-comment-section {
+    margin-top: 48px;
+  }
+
+  @media (max-width: 1024px) {
+    .les-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  }
+  @media (max-width: 640px) {
+    .les-grid { grid-template-columns: 1fr; gap: 14px; }
+    .les-card__cover { width: 120px; }
+    .les-card__title { font-size: 15px; }
+    .les-card__body { padding: 12px 14px; }
+  }
+</style>

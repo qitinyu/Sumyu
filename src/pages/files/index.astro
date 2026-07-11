@@ -1,0 +1,134 @@
+---
+import Layout from '@layouts/Layout.astro';
+import { galleryAlbums } from '@/data/files';
+
+const totalImages = galleryAlbums.reduce((sum, a) => sum + a.images.length, 0);
+---
+
+<Layout title="留芳 · 相册" description="留芳 · 记录生活中的美">
+  <div class="container section-page">
+    <header class="page-header">
+      <div class="page-header__crumb">尺素 / 留芳</div>
+      <h1 class="page-header__title"><iconify-icon icon="ant-design:picture-filled" aria-hidden="true"></iconify-icon> 留芳</h1>
+      <p class="page-header__subtitle">相册 · 共 {galleryAlbums.length} 个相册 · {totalImages} 张照片</p>
+    </header>
+
+    {galleryAlbums.length === 0 ? (
+      <div class="gallery-empty">
+        <iconify-icon icon="mdi:image-off-outline" aria-hidden="true"></iconify-icon>
+        <p>暂无相册 · 请在 <code>src/data/files.ts</code> 添加相册数据</p>
+      </div>
+    ) : (
+      <div class="albums-grid">
+        {galleryAlbums.map(album => (
+          <a class="album-card" href={`/files/${album.slug}/`}>
+            <div class="album-card__cover">
+              <img src={album.cover || album.images[0]?.src} alt={album.name} loading="lazy" decoding="async" />
+              <div class="album-card__overlay"></div>
+              <span class="album-card__count">
+                <iconify-icon icon="mdi:image-multiple" aria-hidden="true"></iconify-icon>
+                {album.images.length}
+              </span>
+            </div>
+            <div class="album-card__body">
+              <h3 class="album-card__name">{album.name}</h3>
+              {album.desc && <p class="album-card__desc">{album.desc}</p>}
+              <span class="album-card__enter">
+                查看相册
+                <iconify-icon icon="ri:arrow-right-line" aria-hidden="true"></iconify-icon>
+              </span>
+            </div>
+          </a>
+        ))}
+      </div>
+    )}
+  </div>
+</Layout>
+
+<style>
+  .section-page { padding: 32px 24px 60px; max-width: var(--container-max); }
+  .page-header { margin-bottom: 28px; }
+  .page-header__crumb { font-size: 12px; color: var(--text-muted); letter-spacing: 0.1em; margin-bottom: 6px; }
+  .page-header__title { font-size: 28px; color: var(--text-strong); display: inline-flex; align-items: center; gap: 8px; }
+  .page-header__title iconify-icon { color: var(--sakura-primary); }
+  .page-header__subtitle { color: var(--text-muted); font-size: 13px; margin-top: 8px; }
+
+  /* 3 列 grid 布局 */
+  .albums-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .album-card {
+    display: flex; flex-direction: column;
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg); overflow: hidden;
+    transition: all var(--transition-base); color: inherit;
+    cursor: pointer;
+  }
+  .album-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--sakura-primary-soft);
+  }
+
+  .album-card__cover {
+    position: relative; aspect-ratio: 3/2; overflow: hidden;
+    background: var(--bg-soft);
+  }
+  .album-card__cover img {
+    width: 100%; height: 100%; object-fit: cover;
+    transition: transform var(--transition-base);
+  }
+  .album-card:hover .album-card__cover img { transform: scale(1.06); }
+  .album-card__overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.5) 100%);
+    pointer-events: none;
+  }
+  .album-card__count {
+    position: absolute; top: 10px; right: 10px;
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(0,0,0,0.5); color: #fff;
+    font-size: 11px; padding: 3px 10px; border-radius: var(--radius-full);
+    backdrop-filter: blur(4px);
+  }
+  .album-card__count iconify-icon { font-size: 13px; }
+
+  .album-card__body {
+    padding: 14px 18px; display: flex; flex-direction: column; gap: 4px;
+  }
+  .album-card__name {
+    font-size: 17px; color: var(--text-strong); font-weight: 600;
+  }
+  .album-card__desc {
+    font-size: 12px; color: var(--text-muted); line-height: 1.6; flex: 1;
+    margin: 2px 0 6px;
+  }
+  .album-card__enter {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12px; color: var(--sakura-primary);
+    transition: gap var(--transition-fast);
+  }
+  .album-card:hover .album-card__enter { gap: 8px; }
+
+  /* 空状态 */
+  .gallery-empty {
+    text-align: center; padding: 80px 24px; color: var(--text-muted);
+  }
+  .gallery-empty iconify-icon { font-size: 64px; color: var(--sakura-primary-soft); margin-bottom: 14px; }
+  .gallery-empty p { font-size: 14px; margin: 6px 0; }
+  .gallery-empty code {
+    background: var(--bg-soft); padding: 2px 8px; border-radius: 4px;
+    font-size: 12px; color: var(--sakura-primary);
+  }
+
+  /* 响应式: 平板 2 列, 手机 1 列 */
+  @media (max-width: 768px) {
+    .albums-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  }
+  @media (max-width: 480px) {
+    .albums-grid { grid-template-columns: 1fr; gap: 14px; }
+  }
+</style>

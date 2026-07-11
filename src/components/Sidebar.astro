@@ -1,0 +1,145 @@
+---
+import { NAV_SECTIONS, SOCIAL_LINKS, SITE_TITLE, SITE_AUTHOR, SITE_SUBTITLE, USER_PROFILE } from '@/config';
+---
+
+<aside class="sakura-sidebar left" id="sidebar" aria-hidden="true">
+  <div class="site-info">
+    <a href="/about/" class="site-author-avatar">
+      <img class="rounded-full" src={USER_PROFILE.avatar} alt="avatar" width="96" height="96" />
+      <span class="site-author-status" title="发呆ing...">🌸</span>
+    </a>
+    <div class="site-author-name">
+      <a href="/about/">{USER_PROFILE.name}</a>
+    </div>
+    <span class="site-name">{SITE_TITLE}</span>
+    <h4 class="site-subtitle">{SITE_SUBTITLE}</h4>
+    <div class="site-description">{USER_PROFILE.signature}</div>
+  </div>
+
+  <div class="links-of-author">
+    {SOCIAL_LINKS.map((s: any) => (
+      <a class="sakura-icon-btn links-of-author-item" href={s.url} title={s.name} target="_blank" rel="noopener">
+        <i class={s.icon}></i>
+      </a>
+    ))}
+  </div>
+
+  <nav class="sakura-sidebar-link" aria-label="侧边栏导航">
+    <ul class="sakura-sidebar-link-items">
+      {NAV_SECTIONS.map((item: any) => (
+        <li>
+          {item.children ? (
+            <Fragment>
+              <button type="button" class="sakura-sidebar-link-item sidebar-nav-group__toggle" data-nav={item.href} aria-expanded="false">
+                <span class="sidebar-nav-group__label">{item.label}</span>
+                <iconify-icon icon="ant-design:down-outlined" class="sidebar-nav-group__chevron" aria-hidden="true"></iconify-icon>
+              </button>
+              <ul class="sakura-sidebar-link-sub-items" hidden>
+                {item.children.map((child: any) => (
+                  <li>
+                    <a class="sakura-nav-link sakura-sidebar-link-item" href={child.href} data-nav={child.href} title={child.label}>
+                      <span class="sakura-nav-link-text">{child.label}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </Fragment>
+          ) : (
+            <a class="sakura-nav-link sakura-sidebar-link-item" href={item.href} data-nav={item.href} title={item.label}>
+              <span class="sakura-nav-link-text">{item.label}</span>
+            </a>
+          )}
+        </li>
+      ))}
+    </ul>
+  </nav>
+</aside>
+<div class="sakura-sidebar__overlay va-overlay" id="sidebar-overlay"></div>
+
+<style>
+  .sakura-sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: 280px; max-width: 86vw;
+    background: var(--bg-card);
+    border-right: 1px solid var(--border-color);
+    z-index: 1100; padding: 24px 20px 40px;
+    transform: translateX(-100%);
+    transition: transform var(--transition-base);
+    overflow-y: auto;
+    display: flex; flex-direction: column; align-items: center; gap: 18px;
+  }
+  .sakura-sidebar.is-open { transform: translateX(0); box-shadow: var(--shadow-lg); }
+  .sakura-sidebar__overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+    z-index: 1050; opacity: 0; visibility: hidden; transition: all var(--transition-base);
+  }
+  .sakura-sidebar__overlay.is-visible { opacity: 1; visibility: visible; }
+
+  .site-info { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .site-author-avatar { position: relative; display: inline-block; margin-bottom: 6px; }
+  .site-author-avatar img {
+    width: 96px; height: 96px; border-radius: 50%;
+    border: 3px solid var(--sakura-primary-soft);
+    box-shadow: var(--shadow-pink);
+    transition: transform var(--transition-base);
+  }
+  .site-author-avatar:hover img { transform: scale(1.05) rotate(-3deg); }
+  .site-author-status {
+    position: absolute; right: -2px; bottom: -2px;
+    background: var(--bg-card); border-radius: 50%;
+    width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+    font-size: 14px; box-shadow: var(--shadow-sm);
+  }
+  .site-author-name { font-size: 20px; font-weight: 600; color: var(--text-strong); }
+  .site-author-name a { color: inherit; }
+  .site-name { font-size: 13px; color: var(--text-muted); }
+  .site-subtitle { font-size: 16px; color: var(--sakura-primary); font-weight: 500; margin-top: 2px; }
+  .site-description { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+
+  .links-of-author { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+  .links-of-author-item { width: 34px; height: 34px; font-size: 16px; color: var(--text-base); }
+  .links-of-author-item:hover { color: var(--sakura-primary); }
+
+  .sakura-sidebar-link { width: 100%; margin-top: 12px; }
+  .sakura-sidebar-link-items { display: flex; flex-direction: column; gap: 2px; }
+  .sakura-sidebar-link-item {
+    display: flex; align-items: center; gap: 10px;
+    width: 100%; padding: 10px 14px;
+    color: var(--text-base); font-size: 14px;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+    text-align: left;
+  }
+  .sakura-sidebar-link-item:hover { background: var(--sakura-primary-soft); color: var(--sakura-primary); }
+  .sakura-sidebar-link-sub-items {
+    margin-top: 2px; padding-left: 16px;
+    display: flex; flex-direction: column; gap: 2px;
+    overflow: hidden;
+    max-height: 1000px;
+    transition: max-height 0.3s ease, margin-top 0.3s ease;
+  }
+  /* 关键修复: [hidden] 属性需要显式声明 display:none, 否则 display:flex 会覆盖 */
+  .sakura-sidebar-link-sub-items[hidden] {
+    display: none !important;
+    max-height: 0;
+    margin-top: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  .sidebar-nav-group__label { flex: 1; }
+  .sidebar-nav-group__chevron { font-size: 12px; transition: transform var(--transition-fast); }
+  .sidebar-nav-group__toggle[aria-expanded="true"] .sidebar-nav-group__chevron { transform: rotate(180deg); }
+  /* 折叠状态时的 chevron 视觉提示 */
+  .sidebar-nav-group__toggle {
+    cursor: pointer;
+    user-select: none;
+  }
+  .sidebar-nav-group__toggle:hover .sidebar-nav-group__chevron {
+    color: var(--sakura-primary);
+  }
+
+  @media (min-width: 1025px) {
+    .sakura-sidebar { display: none; }
+    .sakura-sidebar__overlay { display: none; }
+  }
+</style>

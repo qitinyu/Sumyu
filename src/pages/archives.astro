@@ -1,0 +1,75 @@
+---
+import Layout from '@layouts/Layout.astro';
+import { getArchiveGroups, formatDate } from '@/utils/posts';
+
+const groups = await getArchiveGroups();
+const totalPosts = groups.reduce((acc, g) => acc + g.items.length, 0);
+---
+
+<Layout title="归档" description="按时间归档浏览文章">
+  <div class="container archives-page">
+    <header class="page-header">
+      <h1 class="page-header__title"><iconify-icon icon="ant-design:container-filled" aria-hidden="true"></iconify-icon> 归档</h1>
+      <p class="page-header__subtitle">共 {totalPosts} 篇文章 · 时间线</p>
+    </header>
+
+    <div class="archives-timeline">
+      {groups.map(group => (
+        <section class="archive-group">
+          <h2 class="archive-group__year">{group.year} <span class="archive-group__count">({group.items.length})</span></h2>
+          <ul class="archive-group__list">
+            {group.items.map(p => (
+              <li class="archive-item">
+                <span class="archive-item__date">{formatDate(p.data.pubDate)}</span>
+                <a class="archive-item__title" href={`/posts/${p.id}/`}>{p.data.title}</a>
+                <span class="archive-item__category">{p.data.category}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .archives-page { padding: 32px 24px 40px; max-width: 880px; }
+  .page-header { margin-bottom: 32px; text-align: center; }
+  .page-header__title { font-size: 28px; color: var(--text-strong); display: inline-flex; align-items: center; gap: 8px; }
+  .page-header__title iconify-icon { color: var(--sakura-primary); }
+  .page-header__subtitle { color: var(--text-muted); font-size: 13px; margin-top: 8px; }
+
+  .archives-timeline { position: relative; padding-left: 24px; }
+  .archives-timeline::before {
+    content: ''; position: absolute; left: 6px; top: 0; bottom: 0; width: 2px;
+    background: linear-gradient(180deg, var(--sakura-primary), var(--sakura-primary-soft));
+  }
+  .archive-group { margin-bottom: 32px; position: relative; }
+  .archive-group__year {
+    font-size: 22px; color: var(--sakura-primary); margin-bottom: 16px;
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--bg-card); padding: 6px 14px; border-radius: var(--radius-md);
+    border: 1px solid var(--sakura-primary-soft); position: relative; z-index: 1;
+  }
+  .archive-group__count { font-size: 13px; color: var(--text-muted); }
+  .archive-group::before {
+    content: ''; position: absolute; left: -22px; top: 14px; width: 10px; height: 10px;
+    border-radius: 50%; background: var(--sakura-primary); border: 2px solid var(--bg-page);
+  }
+  .archive-group__list { display: flex; flex-direction: column; gap: 8px; padding-left: 8px; }
+  .archive-item {
+    display: grid; grid-template-columns: 100px 1fr 80px; gap: 14px; align-items: center;
+    padding: 12px 16px; border-radius: var(--radius-md);
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    transition: all var(--transition-fast);
+  }
+  .archive-item:hover { border-color: var(--sakura-primary-soft); transform: translateX(4px); }
+  .archive-item__date { font-size: 12px; color: var(--text-muted); }
+  .archive-item__title { color: var(--text-strong); font-size: 14px; }
+  .archive-item:hover .archive-item__title { color: var(--sakura-primary); }
+  .archive-item__category { font-size: 11px; color: var(--sakura-primary); text-align: right; }
+  @media (max-width: 640px) {
+    .archive-item { grid-template-columns: 1fr; gap: 4px; }
+    .archive-item__category { text-align: left; }
+  }
+</style>

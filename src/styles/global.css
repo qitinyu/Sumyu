@@ -1,0 +1,290 @@
+/* =========================================================
+   Sakura Astro Blog - Global Styles
+   Inspired by Hugo Sakura theme · Pink color (#DF9193)
+   ========================================================= */
+
+/* ---------- Fonts ---------- */
+@import url('https://cdn.jsdelivr.net/npm/lxgw-wenkai-screen-webfont/lxgwwenkaiscreen.css');
+
+/* ---------- 全局基础规则 ---------- */
+/* 关键: [hidden] 属性必须显式声明 display:none, 否则会被 display:flex/grid 等覆盖 */
+[hidden] { display: none !important; }
+
+/* ---------- Design Tokens ----------
+   主题色通过 data-theme-color 属性切换:
+   <html data-theme-color="sakura|matcha|indigo|amber|rosea">
+   默认樱花粉。黑夜模式下不应用主题色 (使用静态粉)。
+*/
+:root {
+  --sakura-primary: #DF9193;
+  --sakura-primary-soft: #f5d6d8;
+  --sakura-primary-deep: #c97375;
+  --sakura-primary-bg: #fdf6f6;
+
+  --va-c-primary: #DF9193;
+}
+
+/* 5 套淡雅主题色 (仅明亮模式生效) */
+:root[data-theme-color="sakura"] {
+  --sakura-primary: #DF9193;
+  --sakura-primary-soft: #f5d6d8;
+  --sakura-primary-deep: #c97375;
+  --sakura-primary-bg: #fdf6f6;
+  --shadow-pink: 0 8px 28px rgba(223, 145, 147, 0.18);
+}
+:root[data-theme-color="matcha"] {
+  --sakura-primary: #7BAE7E;
+  --sakura-primary-soft: #d6ebd8;
+  --sakura-primary-deep: #5d8a60;
+  --sakura-primary-bg: #f4faf5;
+  --shadow-pink: 0 8px 28px rgba(123, 174, 126, 0.18);
+}
+:root[data-theme-color="indigo"] {
+  --sakura-primary: #6B8FA3;
+  --sakura-primary-soft: #d3e0e8;
+  --sakura-primary-deep: #52708a;
+  --sakura-primary-bg: #f3f7f9;
+  --shadow-pink: 0 8px 28px rgba(107, 143, 163, 0.18);
+}
+:root[data-theme-color="amber"] {
+  --sakura-primary: #C9A05A;
+  --sakura-primary-soft: #f0e0c2;
+  --sakura-primary-deep: #a8823f;
+  --sakura-primary-bg: #fbf6ec;
+  --shadow-pink: 0 8px 28px rgba(201, 160, 90, 0.18);
+}
+:root[data-theme-color="rosea"] {
+  --sakura-primary: #A085B5;
+  --sakura-primary-soft: #e3d9ec;
+  --sakura-primary-deep: #7e6594;
+  --sakura-primary-bg: #f7f3fa;
+  --shadow-pink: 0 8px 28px rgba(160, 133, 181, 0.18);
+}
+
+:root {
+
+  --text-strong: #2d2d2d;
+  --text-base: #4a4a4a;
+  --text-muted: #8a8a8a;
+  --text-faint: #b5b5b5;
+
+  --bg-page: #fafafa;
+  --bg-card: #ffffff;
+  --bg-soft: #f5f5f5;
+  --bg-overlay: rgba(255, 255, 255, 0.88);
+
+  --border-color: #ededed;
+  --border-soft: #f3f3f3;
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 8px 28px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.12);
+  --shadow-pink: 0 8px 28px rgba(223, 145, 147, 0.18);
+
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 28px;
+  --radius-full: 999px;
+
+  --container-max: 1200px;
+  --navbar-height: 72px;
+
+  --font-body: 'LXGW WenKai Screen', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-heading: 'LXGW WenKai Screen', 'Noto Serif SC', Georgia, serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+
+  --transition-fast: 0.18s ease;
+  --transition-base: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html.dark {
+  --sakura-primary-bg: #2a2222;
+  --text-strong: #f0f0f0;
+  --text-base: #d4d4d4;
+  --text-muted: #9a9a9a;
+  --text-faint: #6a6a6a;
+  --bg-page: #1a1a1a;
+  --bg-card: #232323;
+  --bg-soft: #2a2a2a;
+  --bg-overlay: rgba(26, 26, 26, 0.9);
+  --border-color: #333333;
+  --border-soft: #2a2a2a;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 28px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.6);
+}
+
+/* ---------- Reset ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--text-base);
+  background: var(--bg-page);
+  transition: background-color var(--transition-base), color var(--transition-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+img, picture, video, svg { max-width: 100%; display: block; }
+a { color: var(--sakura-primary); text-decoration: none; transition: color var(--transition-fast); }
+a:hover { color: var(--sakura-primary-deep); }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+ul, ol { list-style: none; }
+input, textarea { font-family: inherit; font-size: inherit; }
+::selection { background: var(--sakura-primary-soft); color: var(--text-strong); }
+
+/* ---------- Layout helpers ---------- */
+.container { max-width: var(--container-max); margin: 0 auto; padding: 0 24px; }
+.sakura-safe-padding { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+.is-hidden { display: none !important; }
+
+/* ---------- Headings ---------- */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  color: var(--text-strong);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* ---------- Brand color text ---------- */
+.text-pink { color: var(--sakura-primary); }
+
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--sakura-primary-soft); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--sakura-primary); }
+
+/* ---------- Animations ---------- */
+@keyframes fade-in-down { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slit-in-horizontal { from { opacity: 0; transform: scaleX(0.6); } to { opacity: 1; transform: scaleX(1); } }
+@keyframes loop-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes loop-fly { 0%, 100% { transform: translate(0, 0) rotate(0deg); } 50% { transform: translate(4px, -6px) rotate(8deg); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes sakura-fall {
+  0%   { transform: translateY(-10vh) translateX(0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 0.9; }
+  90%  { opacity: 0.9; }
+  100% { transform: translateY(110vh) translateX(40px) rotate(720deg); opacity: 0; }
+}
+
+/* ========== 全屏樱花飘落特效 ========== */
+.sakura-petals {
+  position: fixed; inset: 0; pointer-events: none; z-index: 9999; overflow: hidden;
+}
+.sakura-petal {
+  position: absolute; top: -20px; color: var(--sakura-primary);
+  animation-name: sakura-fall; animation-timing-function: linear; animation-iteration-count: infinite;
+  display: block;
+  text-shadow: 0 0 4px color-mix(in srgb, var(--sakura-primary) 50%, transparent);
+}
+.sakura-petal::before { content: '\2740'; display: inline-block; }
+html.dark .sakura-petal { opacity: 0.3 !important; }
+@media (prefers-reduced-motion: reduce) { .sakura-petals { display: none; } }
+
+.sakura-fade-in-down { animation: fade-in-down 0.7s ease both; }
+.sakura-slit-in-horizontal { animation: slit-in-horizontal 0.7s ease 0.2s both; }
+.sakura-loop-float { animation: loop-float 2.4s ease-in-out infinite; }
+.sakura-loop-fly { animation: loop-fly 3s ease-in-out infinite; }
+
+/* ---------- Iconify sizing ---------- */
+iconify-icon { display: inline-block; vertical-align: -0.125em; }
+
+/* ---------- Generic button ---------- */
+.sakura-icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; border-radius: var(--radius-full);
+  color: var(--text-base); font-size: 18px;
+  transition: all var(--transition-fast);
+}
+.sakura-icon-btn:hover {
+  background: var(--sakura-primary-soft); color: var(--sakura-primary);
+  transform: translateY(-1px);
+}
+
+/* ---------- Page wrapper ---------- */
+#content { min-height: 60vh; }
+.site-content { padding-top: var(--navbar-height); }
+
+/* ---------- Article prose (used in post detail) ---------- */
+.prose-sakura {
+  font-size: 16px; line-height: 1.85; color: var(--text-base);
+  word-wrap: break-word;
+}
+.prose-sakura h1, .prose-sakura h2, .prose-sakura h3, .prose-sakura h4 {
+  margin-top: 1.6em; margin-bottom: 0.6em; color: var(--text-strong);
+  scroll-margin-top: calc(var(--navbar-height) + 16px);
+}
+.prose-sakura h2 { font-size: 1.5em; padding-bottom: 0.3em; border-bottom: 1px solid var(--border-color); }
+.prose-sakura h3 { font-size: 1.25em; }
+.prose-sakura h4 { font-size: 1.1em; }
+.prose-sakura p { margin: 1em 0; }
+.prose-sakura a { color: var(--sakura-primary); border-bottom: 1px dashed var(--sakura-primary-soft); }
+.prose-sakura a:hover { border-bottom-style: solid; }
+.prose-sakura ul, .prose-sakura ol { margin: 1em 0; padding-left: 1.6em; }
+.prose-sakura ul { list-style: disc; }
+.prose-sakura ol { list-style: decimal; }
+.prose-sakura li { margin: 0.4em 0; }
+.prose-sakura blockquote {
+  margin: 1.2em 0; padding: 0.6em 1em; border-left: 3px solid var(--sakura-primary);
+  background: var(--sakura-primary-bg); border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--text-base);
+}
+.prose-sakura blockquote p { margin: 0.4em 0; }
+.prose-sakura code {
+  font-family: var(--font-mono); font-size: 0.9em;
+  background: var(--bg-soft); padding: 0.15em 0.4em; border-radius: 4px;
+  color: var(--sakura-primary-deep);
+}
+.prose-sakura pre {
+  margin: 1.2em 0; padding: 16px 20px; border-radius: var(--radius-md);
+  background: #fafafa; border: 1px solid var(--border-color); overflow-x: auto;
+  font-size: 14px; line-height: 1.6;
+}
+html.dark .prose-sakura pre { background: #1e1e1e; border-color: #2a2a2a; }
+.prose-sakura pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.prose-sakura img { margin: 1.2em auto; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); }
+.prose-sakura hr { margin: 2em 0; border: none; border-top: 1px dashed var(--border-color); }
+.prose-sakura table { width: 100%; margin: 0; border-collapse: collapse; font-size: 14px; }
+.prose-sakura th, .prose-sakura td { padding: 8px 12px; border: 1px solid var(--border-color); }
+.prose-sakura th { background: var(--bg-soft); font-weight: 600; }
+/* 表格横向滚动容器 (由 JS 自动包裹) */
+.prose-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 1.2em 0; border-radius: var(--radius-sm); }
+
+/* ========== 右下角悬浮图标 ========== */
+.floating-actions {
+  position: fixed; right: 20px; bottom: 28px; z-index: 990;
+  display: flex; flex-direction: column; gap: 10px;
+  pointer-events: auto;
+}
+.floating-actions__btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 42px; height: 42px; border-radius: 50%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted); font-size: 20px;
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+.floating-actions__btn:hover {
+  background: var(--sakura-primary); color: #fff;
+  border-color: var(--sakura-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-pink);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1024px) {
+  :root { --navbar-height: 56px; }
+}
+@media (max-width: 768px) {
+  body { font-size: 14px; }
+  .container { padding: 0 16px; }
+}

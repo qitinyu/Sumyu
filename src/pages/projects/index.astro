@@ -1,0 +1,88 @@
+---
+import Layout from '@layouts/Layout.astro';
+import { projects } from '@/data/projects';
+---
+
+<Layout title="铺陈 · 个人项目" description="铺陈 · Sumyu 的个人项目展示">
+  <div class="container section-page">
+    <header class="page-header">
+      <div class="page-header__crumb">尺素 / 铺陈</div>
+      <h1 class="page-header__title"><iconify-icon icon="mdi:cube-outline"></iconify-icon> 铺陈</h1>
+      <p class="page-header__subtitle">个人项目展示 · 把玩过的代码陈列于此</p>
+    </header>
+
+    <div class="projects-grid">
+      {projects.map(p => (
+        <div class="project-card">
+          <div class="project-card__cover"><img src={p.cover} alt={p.name} loading="lazy" /></div>
+          <div class="project-card__body">
+            <span class="project-card__tag">{p.tag}</span>
+            <h3>{p.name}</h3>
+            <p>{p.desc}</p>
+            <div class="project-card__actions">
+              <a class="project-card__more" href={p.url}>
+                查看项目
+                <iconify-icon icon="ri:arrow-right-line"></iconify-icon>
+              </a>
+              {p.github && (
+                <a class="project-card__github" href={p.github} target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub 仓库">
+                  <iconify-icon icon="ri:github-fill"></iconify-icon>
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .section-page { padding: 32px 24px 60px; max-width: 1080px; }
+  .page-header { margin-bottom: 28px; }
+  .page-header__crumb { font-size: 12px; color: var(--text-muted); letter-spacing: 0.1em; margin-bottom: 6px; }
+  .page-header__title { font-size: 28px; color: var(--text-strong); display: inline-flex; align-items: center; gap: 8px; }
+  .page-header__title iconify-icon { color: var(--sakura-primary); }
+  .page-header__subtitle { color: var(--text-muted); font-size: 13px; margin-top: 8px; }
+
+  .projects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+  .project-card {
+    display: flex; flex-direction: column;
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg); overflow: hidden;
+    transition: all var(--transition-base); color: inherit;
+  }
+  .project-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: var(--sakura-primary-soft); }
+  .project-card__cover { aspect-ratio: 16/10; overflow: hidden; }
+  .project-card__cover img { width: 100%; height: 100%; object-fit: cover; transition: transform var(--transition-base); }
+  .project-card:hover .project-card__cover img { transform: scale(1.06); }
+  .project-card__body { padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; }
+  .project-card__tag {
+    align-self: flex-start; font-size: 11px;
+    background: var(--sakura-primary-bg); color: var(--sakura-primary-deep);
+    padding: 2px 8px; border-radius: var(--radius-full);
+  }
+  .project-card__body h3 { font-size: 17px; color: var(--text-strong); }
+  .project-card__body p { font-size: 13px; color: var(--text-muted); line-height: 1.6; flex: 1; }
+  .project-card__actions {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 6px;
+  }
+  .project-card__more {
+    display: inline-flex; align-items: center; gap: 4px;
+    color: var(--sakura-primary); font-size: 13px;
+    transition: all var(--transition-fast);
+  }
+  .project-card__more:hover { gap: 8px; }
+  .project-card__github {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 50%;
+    color: var(--text-muted); font-size: 16px;
+    background: var(--bg-soft);
+    transition: all var(--transition-fast);
+  }
+  .project-card__github:hover {
+    color: #fff; background: #24292e;
+    transform: scale(1.08);
+  }
+</style>

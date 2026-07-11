@@ -1,0 +1,326 @@
+---
+import '@/styles/global.css';
+import { ClientRouter } from 'astro:transitions';
+import Navbar from '@components/Navbar.astro';
+import Sidebar from '@components/Sidebar.astro';
+import Footer from '@components/Footer.astro';
+import SearchModal from '@components/SearchModal.astro';
+import SettingsPanel from '@components/SettingsPanel.astro';
+import Live2D from '@components/Live2D.astro';
+import MusicPlayer from '@components/MusicPlayer.astro';
+import { SITE_TITLE, SITE_DESCRIPTION, ICON } from '@/config';
+
+interface Props {
+  title?: string;
+  description?: string;
+  isHome?: boolean;
+  bodyClass?: string;
+}
+
+const {
+  title = SITE_TITLE,
+  description = SITE_DESCRIPTION,
+  isHome = false,
+  bodyClass = '',
+} = Astro.props;
+
+const fullTitle = title === SITE_TITLE ? title : `${title} · ${SITE_TITLE}`;
+const htmlClass = [isHome ? 'is-home has-home-layout' : '', ''].join(' ');
+---
+
+<!DOCTYPE html>
+<html lang="zh-CN" class={htmlClass}>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <link rel="icon" type="image/x-icon" href={ICON} />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <title>{fullTitle}</title>
+  <meta name="description" content={description} />
+  <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+  <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap-index.xml" />
+  <link rel="alternate" type="application/rss+xml" title={SITE_TITLE} href="/rss.xml" />
+  <meta property="og:locale" content="zh-CN" />
+  <meta property="og:site_name" content={SITE_TITLE} />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:type" content="website" />
+
+  <!-- Iconify -->
+  <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js" defer></script>
+
+  <!-- Theme + theme-color init (run before paint to avoid FOUC) -->
+  <script is:inline>
+    (function () {
+      try {
+        var stored = localStorage.getItem('sakura-theme');
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (stored === 'dark' || (!stored && prefersDark)) {
+          document.documentElement.classList.add('dark');
+        }
+        var colorId = localStorage.getItem('sumyu-theme-color');
+        if (colorId && !document.documentElement.classList.contains('dark')) {
+          document.documentElement.setAttribute('data-theme-color', colorId);
+        } else {
+          document.documentElement.setAttribute('data-theme-color', 'sakura');
+        }
+      } catch (_) {}
+    })();
+  </script>
+
+  <ClientRouter />
+  <slot name="head" />
+</head>
+<body class={bodyClass}>
+  <!-- 樱花花瓣 (全屏飘落特效) -->
+  <div class="sakura-petals" id="sakura-petals" aria-hidden="true" transition:persist="sakura-petals"></div>
+
+  <Navbar />
+  <Sidebar />
+
+  <div id="content" class="site-content">
+    <slot />
+  </div>
+
+  <Footer />
+  <SearchModal />
+  <SettingsPanel />
+  <MusicPlayer />
+  <Live2D />
+
+  <!-- 右下角悬浮图标 -->
+  <div class="floating-actions" id="floating-actions">
+    <button type="button" class="floating-actions__btn" id="float-scroll-btn" aria-label="滚动跳转" title="滚动跳转">
+      <iconify-icon icon="ri:arrow-down-s-line" id="float-scroll-icon"></iconify-icon>
+    </button>
+    <button type="button" class="floating-actions__btn" id="float-home-btn" aria-label="直达轩窗" title="直达轩窗">
+      <iconify-icon icon="ri:home-4-line"></iconify-icon>
+    </button>
+  </div>
+
+  <script>
+    // ===== View Transitions: 模块级状态 (跨页面持久化) =====
+    let sidebarIsOpen = false;
+    let lastSidebarToggleTime = 0;
+    let lastSubMenuToggleTime = 0;
+    let searchIndex: any[] | null = null;
+    let sakuraCreated = false;
+    let scrollDir: 'down' | 'up' = 'down';
+    let lastScrollY = 0;
+    let ticking = false;
+
+    // ===== DOM 引用 (每次页面加载时更新) =====
+    let $sidebarToggle: HTMLElement | null = null;
+    let $sidebar: HTMLElement | null = null;
+    let $sidebarOverlay: HTMLElement | null = null;
+    let $searchOpen: HTMLElement | null = null;
+    let $searchModal: HTMLElement | null = null;
+    let $searchClose: HTMLElement | null = null;
+    let $searchInput: HTMLInputElement | null = null;
+    let $searchResults: HTMLElement | null = null;
+    let $scrollBtn: HTMLElement | null = null;
+    let $scrollIcon: HTMLElement | null = null;
+    let $homeBtn: HTMLElement | null = null;
+
+    // ===== 纯函数 =====
+    function resetSubMenus() {
+      document.querySelectorAll('.sidebar-nav-group__toggle').forEach((btn) => {
+        btn.setAttribute('aria-expanded', 'false');
+        const sub = btn.nextElementSibling;
+        if (sub) sub.hidden = true;
+      });
+    }
+
+    const setSidebar = (open: boolean) => {
+      if (!$sidebar) return;
+      sidebarIsOpen = open;
+      $sidebar.classList.toggle('is-open', open);
+      $sidebar.setAttribute('aria-hidden', String(!open));
+      $sidebarOverlay?.classList.toggle('is-visible', open);
+      $sidebarToggle?.setAttribute('aria-expanded', String(open));
+      document.body.style.overflow = open ? 'hidden' : '';
+      if (open) resetSubMenus();
+    };
+
+    function handleSidebarToggle(e: Event) {
+      e.preventDefault();
+      e.stopPropagation();
+      const now = Date.now();
+      if (now - lastSidebarToggleTime < 400) return;
+      lastSidebarToggleTime = now;
+      setSidebar(!sidebarIsOpen);
+    }
+
+    function handleSubMenuToggle(e: Event) {
+      const btn = (e.target as HTMLElement).closest('.sidebar-nav-group__toggle');
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const now = Date.now();
+      if (now - lastSubMenuToggleTime < 400) return;
+      lastSubMenuToggleTime = now;
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', String(!expanded));
+      const sub = btn.nextElementSibling;
+      if (sub) sub.hidden = expanded;
+    }
+
+    const setModal = (open: boolean) => {
+      if (!$searchModal) return;
+      $searchModal.classList.toggle('is-open', open);
+      $searchOpen?.classList.toggle('is-open', open);
+      document.body.style.overflow = open ? 'hidden' : '';
+      if (open) setTimeout(() => $searchInput?.focus(), 50);
+    };
+
+    async function loadIndex() {
+      if (searchIndex) return searchIndex;
+      try {
+        const res = await fetch('/search.json');
+        const data = await res.json();
+        searchIndex = Array.isArray(data) ? data : [];
+      } catch (_) { searchIndex = []; }
+      return searchIndex;
+    }
+
+    const SECTION_PAGES = [
+      { title: '番剧 · 忆影', url: '/anime/', category: '墨竹', tags: ['番剧','动画','anime','忆影','追番','番剧列表','bangumi'] },
+      { title: '清言', url: '/les/', category: '墨竹', tags: ['清言','les','语录','句子','名言','摘抄','文案'] },
+      { title: '闲游 · 游戏', url: '/games/', category: '墨竹', tags: ['游戏','闲游','games','小游戏'] },
+      { title: '铺陈 · 项目', url: '/projects/', category: '尺素', tags: ['项目','铺陈','projects','作品集'] },
+      { title: '踏青 · 日记', url: '/diary/', category: '尺素', tags: ['日记','踏青','diary','日常','记录'] },
+      { title: '留芳 · 文件', url: '/files/', category: '尺素', tags: ['文件','留芳','files','资源','下载'] },
+      { title: '拾遗', url: '/shiyi/', category: '拾遗', tags: ['拾遗','shiyi','留言','收藏','推荐'] },
+      { title: '幽竹 · 友链', url: '/links/', category: '萍踪', tags: ['友链','链接','links','幽竹','交换链接'] },
+      { title: '石径 · 动态', url: '/friends/', category: '萍踪', tags: ['友链','石径','friends','动态','朋友'] },
+      { title: '陋室 · 关于', url: '/about/', category: '萍踪', tags: ['关于','陋室','about','简介','联系'] },
+    ];
+
+    function updateFloatingBtn() {
+      const scrollY = window.scrollY;
+      if (scrollY > lastScrollY) {
+        scrollDir = 'down';
+        $scrollIcon?.setAttribute('icon', 'ri:arrow-down-s-line');
+      } else {
+        scrollDir = 'up';
+        $scrollIcon?.setAttribute('icon', 'ri:arrow-up-s-line');
+      }
+      lastScrollY = scrollY;
+      ticking = false;
+    }
+
+    // ===== document/window 监听器 (仅绑定一次, 不会被销毁) =====
+    document.addEventListener('click', handleSubMenuToggle);
+    document.addEventListener('touchend', handleSubMenuToggle);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { setModal(false); setSidebar(false); }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); setModal(true); }
+    });
+    window.addEventListener('resize', () => {
+      if (sidebarIsOpen && window.innerWidth > 1024) setSidebar(false);
+    });
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        requestAnimationFrame(updateFloatingBtn);
+        ticking = true;
+      }
+    }, { passive: true });
+
+    // ===== 页面级初始化 (首次加载 + 每次 View Transition 后调用) =====
+    function initPage() {
+      // 查询 DOM
+      $sidebarToggle = document.getElementById('sidebar-toggle');
+      $sidebar = document.getElementById('sidebar');
+      $sidebarOverlay = document.getElementById('sidebar-overlay');
+      $searchOpen = document.getElementById('search-open');
+      $searchModal = document.getElementById('search-modal');
+      $searchClose = document.getElementById('search-close');
+      $searchInput = document.getElementById('search-modal-input');
+      $searchResults = document.getElementById('search-results');
+      $scrollBtn = document.getElementById('float-scroll-btn');
+      $scrollIcon = document.getElementById('float-scroll-icon');
+      $homeBtn = document.getElementById('float-home-btn');
+
+      // 重置状态
+      resetSubMenus();
+      setSidebar(false);
+      setModal(false);
+
+      // 绑定元素级事件 (旧元素随 DOM 销毁, 无需手动移除)
+      $sidebarToggle?.addEventListener('click', handleSidebarToggle);
+      $sidebarOverlay?.addEventListener('click', () => setSidebar(false));
+      $searchOpen?.addEventListener('click', () => setModal(true));
+      $searchClose?.addEventListener('click', () => setModal(false));
+      $searchModal?.addEventListener('click', (e) => {
+        if (e.target === $searchModal) setModal(false);
+      });
+
+      // 搜索输入 (事件委托不适用, 需绑定到新元素)
+      $searchInput?.addEventListener('input', async (e) => {
+        const q = (e.target.value || '').trim().toLowerCase();
+        if (!q) { if ($searchResults) $searchResults.innerHTML = ''; return; }
+        const idx = await loadIndex();
+        const articleMatches = idx.filter((p: any) =>
+          p.title.toLowerCase().includes(q) ||
+          p.description.toLowerCase().includes(q) ||
+          (p.tags && p.tags.some((t: string) => t.toLowerCase().includes(q)))
+        ).map((p: any) => ({ ...p, _type: 'article' }));
+        const sectionMatches = SECTION_PAGES.filter(p =>
+          p.title.toLowerCase().includes(q) ||
+          p.tags.some(t => t.includes(q))
+        ).map(p => ({ ...p, _type: 'section', date: '' }));
+        const matches = [...articleMatches, ...sectionMatches].slice(0, 12);
+        if (!$searchResults) return;
+        if (!matches.length) {
+          $searchResults.innerHTML = '<p class="search-empty">没有找到相关结果</p>';
+          return;
+        }
+        $searchResults.innerHTML = matches.map(p => `
+          <a class="search-result-item" href="${p.url}">
+            <div class="search-result-title">${p._type === 'section' ? '<span class="search-result-badge">版块</span>' : ''}${p.title}</div>
+            <div class="search-result-meta">${p.category}${p.date ? ' · ' + p.date : ''}</div>
+          </a>
+        `).join('');
+      });
+
+      // 悬浮按钮
+      $scrollBtn?.addEventListener('click', () => {
+        if (scrollDir === 'down') {
+          window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
+      $homeBtn?.addEventListener('click', () => { window.location.href = '/'; });
+
+      // 樱花花瓣 (容器已 transition:persist, 仅创建一次)
+      if (!sakuraCreated) {
+        const sakuraPref = localStorage.getItem('sumyu-sakura');
+        const sakuraOn = sakuraPref === null ? true : sakuraPref === 'true';
+        const petalsContainer = document.getElementById('sakura-petals');
+        if (petalsContainer) {
+          petalsContainer.style.display = sakuraOn ? '' : 'none';
+          if (sakuraOn && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            const count = window.innerWidth < 768 ? 15 : 30;
+            for (let i = 0; i < count; i++) {
+              const p = document.createElement('span');
+              p.className = 'sakura-petal';
+              p.style.left = Math.random() * 100 + 'vw';
+              p.style.animationDuration = (8 + Math.random() * 12) + 's';
+              p.style.animationDelay = (Math.random() * 10) + 's';
+              p.style.fontSize = (12 + Math.random() * 18) + 'px';
+              p.style.opacity = String(0.4 + Math.random() * 0.6);
+              petalsContainer.appendChild(p);
+            }
+          }
+        }
+        sakuraCreated = true;
+      }
+    }
+
+    // 首次加载 + 每次 View Transition 后重新绑定
+    initPage();
+    document.addEventListener('astro:page-load', initPage);
+  </script>
+</body>
+</html>

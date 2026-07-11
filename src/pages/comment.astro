@@ -1,0 +1,87 @@
+---
+import Layout from '@layouts/Layout.astro';
+import { COMMENT } from '@/config';
+
+// 留言板页面: 不传 pageId, 显示全站留言 (pageId=default)
+// 拼接 yuamli iframe URL (不带 pageId 参数, yuamli 会返回所有留言)
+const yuamliBaseUrl = COMMENT.yuamli.url;
+const yuamliSeparator = yuamliBaseUrl.includes('?') ? '&' : '?';
+const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=default';
+---
+
+<Layout title="留言" description="留下你的足迹">
+  <div class="container comment-page">
+    <header class="page-header">
+      <h1 class="page-header__title"><iconify-icon icon="ant-design:message-filled" aria-hidden="true"></iconify-icon> 留言板</h1>
+      <p class="page-header__subtitle">愿你被这个世界温柔以待 🌸</p>
+    </header>
+
+    {COMMENT.enable && COMMENT.system === 'yuamli' && (
+      <div class="comment-yuamli-wrap">
+        <iframe
+          class="comment-yuamli"
+          id="comment-board-frame"
+          src={yuamliFrameSrc}
+          loading="lazy"
+          allow="fullscreen"
+        ></iframe>
+      </div>
+    )}
+
+    {!COMMENT.enable && (
+      <div class="comment-envelope">
+        <div class="comment-envelope__letter">
+          <h2>留言功能未开启</h2>
+          <p>请在 <code>src/config.ts</code> 中设置 <code>COMMENT.enable = true</code> 并配置评论系统。</p>
+        </div>
+      </div>
+    )}
+  </div>
+</Layout>
+
+<style>
+  .comment-page { padding: 32px 24px 40px; max-width: 820px; }
+  .page-header { margin-bottom: 28px; text-align: center; }
+  .page-header__title { font-size: 28px; color: var(--text-strong); display: inline-flex; align-items: center; gap: 8px; }
+  .page-header__title iconify-icon { color: var(--sakura-primary); }
+  .page-header__subtitle { color: var(--text-muted); font-size: 13px; margin-top: 8px; }
+
+  /* yuamli iframe 留言板 */
+  .comment-yuamli-wrap {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+  .comment-yuamli {
+    width: 100%;
+    min-height: 600px;
+    border: none;
+    display: block;
+  }
+
+  .comment-envelope {
+    background: var(--sakura-primary-bg);
+    border: 1px solid var(--sakura-primary-soft);
+    border-radius: var(--radius-lg);
+    padding: 4px;
+    margin-bottom: 32px;
+  }
+  .comment-envelope__letter {
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    padding: 28px 32px;
+  }
+  .comment-envelope__letter h2 { font-size: 18px; color: var(--sakura-primary); margin-bottom: 8px; }
+  .comment-envelope__letter > p { font-size: 14px; color: var(--text-muted); margin-bottom: 18px; }
+  .comment-envelope__letter code {
+    background: var(--bg-soft); padding: 2px 6px; border-radius: 4px;
+    font-size: 12px; color: var(--sakura-primary);
+  }
+
+  @media (max-width: 768px) {
+    .comment-page { padding: 24px 16px 40px; }
+    .comment-yuamli { min-height: 500px; }
+  }
+</style>
