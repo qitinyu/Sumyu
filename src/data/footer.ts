@@ -4,7 +4,7 @@
 // =========================================================
 
 export const footerConfig = {
-  // 第一行: 站点品牌 / 标语
+  // 第一行: 站点/ 标语
   brand: {
     title: 'SUMYU',
     subtitle: '轩窗听雨 · 岁月生香',
@@ -16,8 +16,8 @@ export const footerConfig = {
   // email: 联系邮箱
   copyright: {
     year: 2026,
-    owner: 'YuQi',
-    siteUrl: 'https://8872388.xyz',
+    owner: 'Yuqi',
+    siteUrl: 'https://yqamm.top',
     email: '484894496@qq.com',
   },
   // 第三行: 技术栈信息
@@ -27,7 +27,7 @@ export const footerConfig = {
   powered: {
     framework: 'Astro',
     theme: 'Sumyu',
-    version: '1.0.4',
+    version: '1.0.5',
   },
   // 备案信息 (可选, 留空则不显示该行)
   icp: '',
