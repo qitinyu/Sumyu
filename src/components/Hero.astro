@@ -66,61 +66,74 @@ import { HERO_IMAGES, HERO_SETTINGS, RANDOM_QUOTES, SOCIAL_LINKS, USER_PROFILE }
 <!-- Font Awesome for brand icons -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
 
-<script data-astro-rerun>
-  // ---- Hero image rotation ----
-  const slides = document.querySelectorAll('.sakura-hero-background-slide');
-  let activeIdx = 0;
-  function showSlide(idx: number) {
-    slides.forEach((s, i) => s.classList.toggle('is-active', i === idx));
-    activeIdx = idx;
+<script>
+  let heroSlideTimer = null;
+  function initHero() {
+    // ---- Hero image rotation ----
+    const slides = document.querySelectorAll('.sakura-hero-background-slide');
+    let activeIdx = 0;
+    function showSlide(idx) {
+      slides.forEach((s, i) => s.classList.toggle('is-active', i === idx));
+      activeIdx = idx;
+    }
+    function nextSlide() { if (slides.length) showSlide((activeIdx + 1) % slides.length); }
+
+    if (heroSlideTimer) clearInterval(heroSlideTimer);
+    heroSlideTimer = setInterval(nextSlide, 6000);
+    const heroMedia = document.getElementById('hero-media');
+    heroMedia?.addEventListener('mouseenter', () => { if (heroSlideTimer) clearInterval(heroSlideTimer); });
+    heroMedia?.addEventListener('mouseleave', () => {
+      if (heroSlideTimer) clearInterval(heroSlideTimer);
+      heroSlideTimer = setInterval(nextSlide, 6000);
+    });
+
+    // ---- Scroll down ----
+    const scrollDown = document.getElementById('hero-scroll-down');
+    if (scrollDown) {
+      scrollDown.onclick = () => {
+        const target = document.getElementById('home-posts') || document.getElementById('content');
+        target?.scrollIntoView({ behavior: 'smooth' });
+      };
+    }
   }
-  function nextSlide() { if (slides.length) showSlide((activeIdx + 1) % slides.length); }
-
-  let timer: any = setInterval(nextSlide, 6000);
-  const heroMedia = document.getElementById('hero-media');
-  heroMedia?.addEventListener('mouseenter', () => clearInterval(timer));
-  heroMedia?.addEventListener('mouseleave', () => { timer = setInterval(nextSlide, 6000); });
-
-  // ---- Random quotes typewriter (no background, centered) ----
-  const quoteEl = document.getElementById('hero-quote');
-  if (quoteEl) {
-    const quotes: string[] = JSON.parse(quoteEl.dataset.quotes || '[]');
-    const useTypewriter = quoteEl.dataset.typewriter === 'true';
-    const speed = parseInt(quoteEl.dataset.speed || '80', 10);
-    let qIdx = 0;
-
-    async function typeText(text: string) {
-      quoteEl.textContent = '';
-      if (!useTypewriter) { quoteEl.textContent = text; await new Promise(r => setTimeout(r, 5000)); return; }
-      for (let i = 0; i < text.length; i++) {
-        quoteEl.textContent += text[i];
-        await new Promise(r => setTimeout(r, speed));
+  // 打字机只在首次加载时启动(避免重复)
+  (function initTypewriter() {
+    const quoteEl = document.getElementById('hero-quote');
+    if (quoteEl && !quoteEl.dataset.inited) {
+      quoteEl.dataset.inited = 'true';
+      const quotes = JSON.parse(quoteEl.dataset.quotes || '[]');
+      const useTypewriter = quoteEl.dataset.typewriter === 'true';
+      const speed = parseInt(quoteEl.dataset.speed || '80', 10);
+      let qIdx = 0;
+      async function typeText(text) {
+        quoteEl.textContent = '';
+        if (!useTypewriter) { quoteEl.textContent = text; await new Promise(r => setTimeout(r, 5000)); return; }
+        for (let i = 0; i < text.length; i++) {
+          quoteEl.textContent += text[i];
+          await new Promise(r => setTimeout(r, speed));
+        }
+        await new Promise(r => setTimeout(r, 4000));
       }
-      await new Promise(r => setTimeout(r, 4000));
-    }
-    async function eraseText() {
-      if (!useTypewriter) return;
-      const text = quoteEl.textContent || '';
-      for (let i = text.length; i > 0; i--) {
-        quoteEl.textContent = text.slice(0, i);
-        await new Promise(r => setTimeout(r, speed / 2));
+      async function eraseText() {
+        if (!useTypewriter) return;
+        const text = quoteEl.textContent || '';
+        for (let i = text.length; i > 0; i--) {
+          quoteEl.textContent = text.slice(0, i);
+          await new Promise(r => setTimeout(r, speed / 2));
+        }
       }
-    }
-    async function loop() {
-      while (true) {
-        await typeText(quotes[qIdx]);
-        await eraseText();
-        qIdx = (qIdx + 1) % quotes.length;
+      async function loop() {
+        while (true) {
+          await typeText(quotes[qIdx]);
+          await eraseText();
+          qIdx = (qIdx + 1) % quotes.length;
+        }
       }
+      loop();
     }
-    loop();
-  }
-
-  // ---- Scroll down ----
-  document.getElementById('hero-scroll-down')?.addEventListener('click', () => {
-    const target = document.getElementById('home-posts') || document.getElementById('content');
-    target?.scrollIntoView({ behavior: 'smooth' });
-  });
+  })();
+  initHero();
+  document.addEventListener('astro:page-load', initHero);
 </script>
 
 <style>

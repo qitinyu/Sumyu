@@ -1,21 +1,40 @@
 ---
 import { ANNOUNCEMENTS, SITE_START_DATE, TOTAL_WORD_COUNT } from '@/config';
-import { getPublishedPosts, formatDate } from '@/utils/posts';
+import { formatDate } from '@/utils/posts';
+import fs from 'node:fs';
+import path from 'node:path';
 
-const posts = await getPublishedPosts();
-// 随机抽取 5 篇作为轮播
-const featured = posts.slice(0, Math.min(5, posts.length));
-const current = featured[0] ?? null;
-const totalArticles = posts.length;
-// 最后编辑日期: 取最新文章的 pubDate 或 updatedDate
-const latestPost = posts[0] ?? null;
+interface Props {
+  randomPosts?: any[];
+}
+
+const { randomPosts = [] } = Astro.props;
+
+// 读取 /public/hero 目录下的图片
+const heroDir = path.join(process.cwd(), 'public', 'hero');
+let heroImages: string[] = [];
+try {
+  heroImages = fs.readdirSync(heroDir)
+    .filter(f => /\.(webp|jpg|jpeg|png|gif)$/i.test(f))
+    .map(f => `/hero/${f}`);
+} catch (e) {
+  heroImages = [];
+}
+
+// 用于轮播的随机图片（打乱顺序）
+const shuffledImages = [...heroImages].sort(() => Math.random() - 0.5);
+
+// 用于滚筒的随机文章数据（打乱后最多取 20 篇）
+const rollerPosts = [...randomPosts].sort(() => Math.random() - 0.5).slice(0, 20);
+const totalArticles = randomPosts.length;
+const latestPost = randomPosts[0] ?? null;
 const lastEditDate = latestPost
   ? (latestPost.data.updatedDate || latestPost.data.pubDate)
   : null;
 ---
 
-<section class="notice-board-wrap" data-interval="5000">
-  <!-- 第一行: 站点公告(左) + 随机文章(右) -->
+<section class="notice-board-wrap">
+  <!-- 三列: 公告(左) + 随机图片(中) + 随机文章+统计(右) -->
   <div class="notice-board__row-top">
     <!-- 站点公告 -->
     <div class="notice-board__section notice-board__section--announce">
@@ -33,163 +52,178 @@ const lastEditDate = latestPost
       </ul>
     </div>
 
-    <!-- 随机文章轮播 -->
-    <div class="notice-board__section notice-board__section--article">
+    <!-- 随机图片轮播 -->
+    <div class="notice-board__section notice-board__section--images">
+      <h3 class="notice-board__heading">
+        <iconify-icon icon="ri:image-line" aria-hidden="true"></iconify-icon>
+        随机图片
+      </h3>
+      <div class="image-carousel" id="image-carousel"
+        data-images={JSON.stringify(shuffledImages)}>
+        <div class="image-carousel__frame">
+          {shuffledImages.length > 0 && (
+            <img src={shuffledImages[0]} alt="随机图片" loading="eager" fetchpriority="high" decoding="async" id="carousel-img" />
+          )}
+        </div>
+        <div class="image-carousel__dots" role="tablist" aria-label="图片切换">
+          {shuffledImages.map((_, i) => (
+            <button type="button" class={`image-carousel__dot${i === 0 ? ' is-active' : ''}`} data-idx={i} role="tab" aria-label={`切换到第 ${i + 1} 张图片`}></button>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    <!-- 右列: 滚筒式随机文章 + 站点统计 -->
+    <div class="notice-board__section notice-board__section--right">
       <h3 class="notice-board__heading">
         <iconify-icon icon="ri:article-line" aria-hidden="true"></iconify-icon>
         随机文章
       </h3>
-      <div class="notice-board-wrap__article" id="notice-article"
-        data-posts={JSON.stringify(featured.map(p => ({
-          title: p.data.title,
-          url: `/posts/${p.id}/`,
-          cover: p.data.image || '/hero/hero-1.jpg',
-          date: formatDate(p.data.pubDate),
-          category: p.data.category,
-          tags: p.data.tags,
-          excerpt: p.data.description,
-        })))}>
-        {current && (
-          <a class="notice-board-wrap__article-link" href={`/posts/${current.id}/`} aria-label={`查看文章：${current.data.title}`}></a>
-        )}
-        <div class="notice-board-wrap__cover-col">
-          <div class="notice-board-wrap__dots" role="tablist" aria-label="文章切换">
-            <div class="notice-board-wrap__dots-track">
-              {featured.map((_, i) => (
-                <button type="button" class={`notice-board-wrap__dot${i === 0 ? ' is-active' : ''}`} data-idx={i} role="tab" aria-label="切换文章"></button>
-              ))}
-            </div>
-          </div>
-          <div class="notice-board-wrap__cover-frame">
-            <div class="notice-board-wrap__cover">
-              {current && (
-                <img src={current.data.image || '/hero/hero-1.jpg'} alt={current.data.title} loading="eager" fetchpriority="high" decoding="async" />
-              )}
-            </div>
-          </div>
-        </div>
-        <div class="notice-board-wrap__meta-col">
-          {current && (
-            <div class="notice-board-wrap__meta">
-              <time class="notice-board-wrap__date" datetime={current.data.pubDate.toISOString()}>{formatDate(current.data.pubDate)}</time>
-              <h2 class="notice-board-wrap__post-heading">{current.data.title}</h2>
-              <p class="notice-board-wrap__meta-line">
-                <span class="notice-board-wrap__meta-item">{current.data.category}</span>
-                <span class="notice-board-wrap__meta-sep">·</span>
-                <span class="notice-board-wrap__meta-item">{current.data.tags.slice(0, 3).join(' · ')}</span>
-              </p>
-              <div class="notice-board-wrap__excerpt-slot">
-                <p class="notice-board-wrap__excerpt">{current.data.description}</p>
-              </div>
-            </div>
-          )}
+      <div class="roller" id="roller">
+        <div class="roller__track" id="roller-track">
+          {rollerPosts.map((post, i) => (
+            <a class={`roller__card${i === 0 ? ' is-active' : ''}`} href={`/posts/${post.id}/`} data-idx={i}>
+              <span class="roller__title">{post.data.title}</span>
+              <span class="roller__meta">{formatDate(post.data.pubDate)} · {post.data.category}</span>
+            </a>
+          ))}
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- 第二行: 站点统计 (4×1 布局) -->
-  <div class="notice-board__section">
-    <h3 class="notice-board__heading">
-      <iconify-icon icon="ri:bar-chart-box-line" aria-hidden="true"></iconify-icon>
-      站点统计
-    </h3>
-    <div class="site-stats">
-      <div class="site-stats__item">
-        <iconify-icon icon="ri:time-line" aria-hidden="true"></iconify-icon>
-        <div class="site-stats__info">
-          <span class="site-stats__value" id="stat-runtime">0 天</span>
-          <span class="site-stats__label">运行时长</span>
+      <h3 class="notice-board__heading" style="margin-top: 16px;">
+        <iconify-icon icon="ri:bar-chart-box-line" aria-hidden="true"></iconify-icon>
+        站点统计
+      </h3>
+      <div class="site-stats site-stats--compact">
+        <div class="site-stats__item">
+          <iconify-icon icon="ri:time-line" aria-hidden="true"></iconify-icon>
+          <div class="site-stats__info">
+            <span class="site-stats__value" id="stat-runtime">0 天</span>
+            <span class="site-stats__label">运行时长</span>
+          </div>
         </div>
-      </div>
-      <div class="site-stats__item">
-        <iconify-icon icon="ri:file-text-line" aria-hidden="true"></iconify-icon>
-        <div class="site-stats__info">
-          <span class="site-stats__value">{totalArticles}</span>
-          <span class="site-stats__label">文章总数</span>
+        <div class="site-stats__item">
+          <iconify-icon icon="ri:file-text-line" aria-hidden="true"></iconify-icon>
+          <div class="site-stats__info">
+            <span class="site-stats__value">{totalArticles}</span>
+            <span class="site-stats__label">文章总数</span>
+          </div>
         </div>
-      </div>
-      <div class="site-stats__item">
-        <iconify-icon icon="ri:quill-pen-line" aria-hidden="true"></iconify-icon>
-        <div class="site-stats__info">
-          <span class="site-stats__value">{TOTAL_WORD_COUNT}</span>
-          <span class="site-stats__label">总字数</span>
+        <div class="site-stats__item">
+          <iconify-icon icon="ri:quill-pen-line" aria-hidden="true"></iconify-icon>
+          <div class="site-stats__info">
+            <span class="site-stats__value">{TOTAL_WORD_COUNT}</span>
+            <span class="site-stats__label">总字数</span>
+          </div>
         </div>
-      </div>
-      <div class="site-stats__item">
-        <iconify-icon icon="ri:edit-line" aria-hidden="true"></iconify-icon>
-        <div class="site-stats__info">
-          <span class="site-stats__value">{lastEditDate ? formatDate(lastEditDate) : '暂无'}</span>
-          <span class="site-stats__label">最后编辑</span>
+        <div class="site-stats__item">
+          <iconify-icon icon="ri:edit-line" aria-hidden="true"></iconify-icon>
+          <div class="site-stats__info">
+            <span class="site-stats__value">{lastEditDate ? formatDate(lastEditDate) : '暂无'}</span>
+            <span class="site-stats__label">最后编辑</span>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<script data-astro-rerun>
-  // ---- 随机文章轮播 ----
-  const article = document.getElementById('notice-article');
-  if (article) {
-    const data = JSON.parse(article.dataset.posts || '[]');
-    const dots = article.querySelectorAll('.notice-board-wrap__dot');
-    const cover = article.querySelector('.notice-board-wrap__cover img');
-    const heading = article.querySelector('.notice-board-wrap__post-heading');
-    const dateEl = article.querySelector('.notice-board-wrap__date');
-    const excerpt = article.querySelector('.notice-board-wrap__excerpt');
-    const metaItems = article.querySelectorAll('.notice-board-wrap__meta-item');
-    const link = article.querySelector('.notice-board-wrap__article-link');
-    let idx = 0;
-    let timer: any;
+<script>
+  let imageTimer = null;
+  let rollerTimer = null;
+  let runtimeTimer = null;
 
-    function render(i: number) {
-      if (!data[i]) return;
-      idx = i;
-      const p = data[i];
-      if (cover) {
-        cover.style.opacity = '0';
-        setTimeout(() => {
-          (cover as HTMLImageElement).src = p.cover;
-          cover.alt = p.title;
-          cover.style.opacity = '1';
-        }, 200);
+  function initNoticeBoard() {
+    // ---- 随机图片轮播 ----
+    const carousel = document.getElementById('image-carousel');
+    if (carousel) {
+      const images = JSON.parse(carousel.dataset.images || '[]');
+      const img = document.getElementById('carousel-img');
+      const dots = carousel.querySelectorAll('.image-carousel__dot');
+      let idx = 0;
+
+      function renderImage(i) {
+        if (!images[i]) return;
+        idx = i;
+        if (img) {
+          img.style.opacity = '0';
+          setTimeout(() => {
+            img.src = images[i];
+            img.style.opacity = '1';
+          }, 200);
+        }
+        dots.forEach((d, di) => d.classList.toggle('is-active', di === i));
       }
-      if (heading) heading.textContent = p.title;
-      if (dateEl) { dateEl.textContent = p.date; dateEl.setAttribute('datetime', p.date); }
-      if (excerpt) excerpt.textContent = p.excerpt;
-      if (metaItems[0]) metaItems[0].textContent = p.category;
-      if (metaItems[1]) metaItems[1].textContent = p.tags.slice(0, 3).join(' · ');
-      if (link) link.setAttribute('href', p.url);
-      dots.forEach((d, di) => d.classList.toggle('is-active', di === i));
+
+      dots.forEach((d, di) => d.addEventListener('click', () => {
+        renderImage(di);
+        resetImageTimer();
+      }));
+
+      function resetImageTimer() {
+        if (imageTimer) clearInterval(imageTimer);
+        if (images.length > 1) {
+          imageTimer = setInterval(() => renderImage((idx + 1) % images.length), 5000);
+        }
+      }
+      resetImageTimer();
     }
 
-    dots.forEach((d, di) => d.addEventListener('click', () => { render(di); resetTimer(); }));
-    function resetTimer() {
-      clearInterval(timer);
-      timer = setInterval(() => render((idx + 1) % data.length), 5000);
+    // ---- 滚筒式随机文章 ----
+    const track = document.getElementById('roller-track');
+    if (track) {
+      const cards = track.querySelectorAll('.roller__card');
+      if (cards.length > 0) {
+        let activeIdx = 0;
+        const itemHeight = 72;
+        const gap = 10;
+
+        function setActive(i) {
+          activeIdx = i;
+          const offset = -(activeIdx * (itemHeight + gap));
+          track.style.transform = `translateY(${offset}px)`;
+          cards.forEach((c, ci) => {
+            c.classList.toggle('is-active', ci === activeIdx);
+          });
+        }
+
+        function resetRollerTimer() {
+          if (rollerTimer) clearInterval(rollerTimer);
+          rollerTimer = setInterval(() => {
+            activeIdx = (activeIdx + 1) % cards.length;
+            setActive(activeIdx);
+          }, 4000);
+        }
+
+        setActive(0);
+        resetRollerTimer();
+      }
     }
-    if (data.length > 1) resetTimer();
+
+    // ---- 运行时长计算 ----
+    const runtimeEl = document.getElementById('stat-runtime');
+    if (runtimeEl) {
+      if (runtimeTimer) clearInterval(runtimeTimer);
+      const startDate = new Date('2026-07-01T00:00:00');
+      function updateRuntime() {
+        const now = new Date();
+        const diff = now.getTime() - startDate.getTime();
+        if (diff < 0) { runtimeEl.textContent = '0 天'; return; }
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        if (days > 0) {
+          runtimeEl.textContent = `${days} 天 ${hours} 时`;
+        } else {
+          runtimeEl.textContent = `${hours} 时`;
+        }
+      }
+      updateRuntime();
+      runtimeTimer = setInterval(updateRuntime, 60000);
+    }
   }
 
-  // ---- 运行时长计算 ----
-  const runtimeEl = document.getElementById('stat-runtime');
-  if (runtimeEl) {
-    const startDate = new Date('2026-07-01T00:00:00');
-    function updateRuntime() {
-      const now = new Date();
-      const diff = now.getTime() - startDate.getTime();
-      if (diff < 0) { runtimeEl.textContent = '0 天'; return; }
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      if (days > 0) {
-        runtimeEl.textContent = `${days} 天 ${hours} 时`;
-      } else {
-        runtimeEl.textContent = `${hours} 时`;
-      }
-    }
-    updateRuntime();
-    setInterval(updateRuntime, 60000);
-  }
+  initNoticeBoard();
+  document.addEventListener('astro:page-load', initNoticeBoard);
 </script>
 
 <style>
@@ -202,10 +236,10 @@ const lastEditDate = latestPost
     box-shadow: var(--shadow-sm);
   }
 
-  /* 第一行: 公告(左) + 随机文章(右) */
+  /* 三列: 公告(左) + 图片(中) + 文章+统计(右) */
   .notice-board__row-top {
     display: grid;
-    grid-template-columns: 1fr 1.6fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 24px;
     align-items: start;
   }
@@ -229,53 +263,113 @@ const lastEditDate = latestPost
     background: var(--sakura-primary); margin-top: 7px;
   }
 
-  /* ---- 随机文章轮播 ---- */
-  .notice-board-wrap__article {
-    position: relative;
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 18px;
+  /* ---- 随机图片轮播 ---- */
+  .image-carousel {
+    display: flex;
+    flex-direction: column;
     align-items: center;
+    gap: 12px;
   }
-  .notice-board-wrap__article-link { position: absolute; inset: 0; z-index: 2; }
-
-  .notice-board-wrap__cover-col { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-  .notice-board-wrap__dots { display: flex; align-items: center; height: 12px; }
-  .notice-board-wrap__dots-track { display: flex; gap: 8px; align-items: center; }
-  .notice-board-wrap__dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--border-color); transition: all var(--transition-fast);
-  }
-  .notice-board-wrap__dot.is-active { background: var(--sakura-primary); transform: scale(1.3); }
-
-  .notice-board-wrap__cover-frame {
-    width: 150px; height: 200px; border-radius: var(--radius-md);
-    overflow: hidden; box-shadow: var(--shadow-md);
+  .image-carousel__frame {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
     border: 3px solid #fff;
-    transform: rotate(-2deg);
     transition: transform var(--transition-base);
   }
-  html.dark .notice-board-wrap__cover-frame { border-color: var(--bg-soft); }
-  .notice-board-wrap__cover-frame:hover { transform: rotate(0); }
-  .notice-board-wrap__cover { width: 100%; height: 100%; }
-  .notice-board-wrap__cover img { width: 100%; height: 100%; object-fit: cover; transition: opacity 0.3s; }
-
-  .notice-board-wrap__meta-col { display: flex; flex-direction: column; }
-  .notice-board-wrap__date { font-size: 12px; color: var(--text-muted); }
-  .notice-board-wrap__post-heading {
-    font-size: 18px; color: var(--text-strong); margin: 4px 0 8px;
-    line-height: 1.4; position: relative; z-index: 3;
-  }
-  .notice-board-wrap__meta-line { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
-  .notice-board-wrap__meta-sep { margin: 0 6px; color: var(--text-faint); }
-  .notice-board-wrap__excerpt {
-    font-size: 13px; color: var(--text-base); line-height: 1.7;
-    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  html.dark .image-carousel__frame { border-color: var(--bg-soft); }
+  .image-carousel__frame:hover { transform: scale(1.02); }
+  .image-carousel__frame img {
+    width: 100%; height: 100%; object-fit: cover;
+    transition: opacity 0.3s;
   }
 
-  /* ---- 站点统计 (4×1) ---- */
+  .image-carousel__dots {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .image-carousel__dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--border-color);
+    transition: all var(--transition-fast);
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+  .image-carousel__dot.is-active {
+    background: var(--sakura-primary);
+    transform: scale(1.3);
+  }
+
+  /* ---- 滚筒式随机文章 ---- */
+  .roller {
+    height: calc(3 * 72px + 2 * 10px);
+    overflow: hidden;
+    position: relative;
+    border-radius: var(--radius-md);
+  }
+  .roller__track {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: calc(72px + 10px);
+    padding-bottom: calc(72px + 10px);
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .roller__card {
+    height: 72px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 14px;
+    background: var(--bg-soft);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-soft);
+    text-decoration: none;
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: scale(0.92);
+    opacity: 0.7;
+    overflow: hidden;
+  }
+  .roller__card.is-active {
+    transform: scale(1);
+    opacity: 1;
+    background: var(--sakura-primary-bg);
+    border-color: var(--sakura-primary-soft);
+  }
+  .roller__card:hover {
+    border-color: var(--sakura-primary);
+  }
+  .roller__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-strong);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .roller__meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ---- 站点统计 ---- */
   .site-stats {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+  }
+  .site-stats--compact {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
   }
   .site-stats__item {
     display: flex; align-items: center; gap: 12px;
@@ -294,10 +388,7 @@ const lastEditDate = latestPost
   @media (max-width: 768px) {
     .notice-board-wrap { padding: 18px; gap: 20px; }
     .notice-board__row-top { grid-template-columns: 1fr; gap: 20px; }
-    .notice-board-wrap__article { grid-template-columns: 1fr; text-align: center; }
-    .notice-board-wrap__cover-col { flex-direction: column-reverse; align-items: center; }
-    .notice-board-wrap__cover-frame { width: 140px; height: 190px; }
-    .notice-board-wrap__post-heading { font-size: 16px; }
+    .image-carousel__frame { aspect-ratio: 16 / 9; }
     .site-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
     .site-stats__item { padding: 12px; gap: 8px; }
     .site-stats__value { font-size: 14px; }

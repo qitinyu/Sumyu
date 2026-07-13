@@ -153,87 +153,94 @@ const licenseName = post.data.licenseName;
   </article>
 </Layout>
 
-<script data-astro-rerun>
-  // ---- 表格横向滚动: 将所有 table 包裹在可滚动容器中 ----
-  document.querySelectorAll('.prose-sakura table').forEach((table) => {
-    const wrap = document.createElement('div');
-    wrap.className = 'prose-table-wrap';
-    table.parentNode!.insertBefore(wrap, table);
-    wrap.appendChild(table);
-  });
+<script>
+  let postTocObserver = null;
+  function initPostDetail() {
+    // ---- 表格横向滚动 ----
+    document.querySelectorAll('.prose-sakura table').forEach((table) => {
+      if (table.parentElement?.classList.contains('prose-table-wrap')) return;
+      const wrap = document.createElement('div');
+      wrap.className = 'prose-table-wrap';
+      table.parentNode.insertBefore(wrap, table);
+      wrap.appendChild(table);
+    });
 
-  // 构建目录：根据 h2/h3/h4 层级
-  const article = document.querySelector('.post-body .prose-sakura');
-  const tocNav = document.getElementById('post-toc-nav');
-  const toc = document.getElementById('post-toc');
-  if (article && tocNav) {
-    const heads = article.querySelectorAll('h2, h3, h4');
-    if (heads.length < 2) {
-      toc?.classList.add('is-hidden');
-    } else {
-      const ul = document.createElement('ul');
-      heads.forEach((h, i) => {
-        if (!h.id) h.id = `heading-${i}`;
-        const li = document.createElement('li');
-        // 层级: h2=0, h3=1, h4=2, 每级缩进 2em
-        const level = h.tagName === 'H4' ? 2 : h.tagName === 'H3' ? 1 : 0;
-        if (level > 0) li.classList.add('post-toc__sub');
-        if (level > 1) li.classList.add('post-toc__sub--deep');
-        const a = document.createElement('a');
-        a.href = `#${h.id}`;
-        a.textContent = h.textContent;
-        a.addEventListener('click', (e) => {
-          e.preventDefault();
-          document.getElementById(h.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // ---- 构建目录 ----
+    const article = document.querySelector('.post-body .prose-sakura');
+    const tocNav = document.getElementById('post-toc-nav');
+    const toc = document.getElementById('post-toc');
+    if (postTocObserver) { postTocObserver.disconnect(); postTocObserver = null; }
+    if (article && tocNav) {
+      tocNav.innerHTML = '';
+      toc?.classList.remove('is-hidden');
+      const heads = article.querySelectorAll('h2, h3, h4');
+      if (heads.length < 2) {
+        toc?.classList.add('is-hidden');
+      } else {
+        const ul = document.createElement('ul');
+        heads.forEach((h, i) => {
+          if (!h.id) h.id = `heading-${i}`;
+          const li = document.createElement('li');
+          const level = h.tagName === 'H4' ? 2 : h.tagName === 'H3' ? 1 : 0;
+          if (level > 0) li.classList.add('post-toc__sub');
+          if (level > 1) li.classList.add('post-toc__sub--deep');
+          const a = document.createElement('a');
+          a.href = `#${h.id}`;
+          a.textContent = h.textContent;
+          a.dataset.target = h.id;
+          a.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById(h.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          });
+          li.appendChild(a);
+          ul.appendChild(li);
         });
-        li.appendChild(a);
-        ul.appendChild(li);
+        tocNav.appendChild(ul);
+
+        // 阅读进度追踪
+        let currentActive = null;
+        postTocObserver = new IntersectionObserver((entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              if (currentActive) currentActive.classList.remove('is-active');
+              currentActive = tocNav.querySelector(`a[data-target="${e.target.id}"]`);
+              currentActive?.classList.add('is-active');
+            }
+          });
+        }, { rootMargin: '-80px 0px -65% 0px' });
+        heads.forEach((h) => postTocObserver.observe(h));
+      }
+    }
+
+    // ---- 加密文章解锁 ----
+    const encryptedBlock = document.getElementById('post-encrypted');
+    if (encryptedBlock) {
+      const unlockBtn = document.getElementById('post-unlock-btn');
+      const pwdInput = document.getElementById('post-password');
+      const hint = document.getElementById('post-encrypted-hint');
+      const content = document.getElementById('post-encrypted-content');
+      const expectedPwd = encryptedBlock.getAttribute('data-pwd') || '';
+      function tryUnlock() {
+        if (!pwdInput || !hint || !content || !encryptedBlock) return;
+        const entered = pwdInput.value;
+        if (entered === expectedPwd) {
+          content.classList.remove('is-hidden');
+          hint.textContent = '解锁成功';
+          hint.style.color = 'var(--sakura-primary)';
+          encryptedBlock.querySelector('.post-encrypted__icon')?.classList.add('is-unlocked');
+        } else {
+          hint.textContent = '密码错误，请重试';
+          hint.style.color = '#e74c3c';
+        }
+      }
+      unlockBtn?.addEventListener('click', tryUnlock);
+      pwdInput?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') tryUnlock();
       });
-      tocNav.appendChild(ul);
-
-      // 阅读进度追踪: 高亮当前可见的标题
-      const tocLinks = tocNav.querySelectorAll('a');
-      let currentActive: Element | null = null;
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            if (currentActive) currentActive.classList.remove('is-active');
-            currentActive = tocNav.querySelector(`a[href="#${e.target.id}"]`);
-            currentActive?.classList.add('is-active');
-          }
-        });
-      }, { rootMargin: '-80px 0px -65% 0px' });
-      heads.forEach((h) => observer.observe(h));
     }
   }
-
-  // ---- 加密文章解锁 ----
-  const encryptedBlock = document.getElementById('post-encrypted');
-  const unlockBtn = document.getElementById('post-unlock-btn');
-  const pwdInput = document.getElementById('post-password') as HTMLInputElement | null;
-  const hint = document.getElementById('post-encrypted-hint');
-  const content = document.getElementById('post-encrypted-content');
-  const expectedPwd = encryptedBlock?.getAttribute('data-pwd') || '';
-  if (encryptedBlock) {
-    encryptedBlock.setAttribute('data-pwd', expectedPwd);
-  }
-  function tryUnlock() {
-    if (!pwdInput || !hint || !content || !encryptedBlock) return;
-    const entered = pwdInput.value;
-    if (entered === expectedPwd) {
-      content.classList.remove('is-hidden');
-      hint.textContent = '解锁成功';
-      hint.style.color = 'var(--sakura-primary)';
-      encryptedBlock.querySelector('.post-encrypted__icon')?.classList.add('is-unlocked');
-    } else {
-      hint.textContent = '密码错误，请重试';
-      hint.style.color = '#e74c3c';
-    }
-  }
-  unlockBtn?.addEventListener('click', tryUnlock);
-  pwdInput?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') tryUnlock();
-  });
+  initPostDetail();
+  document.addEventListener('astro:page-load', initPostDetail);
 </script>
 
 <style>
@@ -303,10 +310,12 @@ const licenseName = post.data.licenseName;
   .post-toc__nav a:hover { color: var(--sakura-primary); background: var(--bg-soft); }
   .post-toc__nav a.is-active {
     color: var(--sakura-primary); font-weight: 600;
-    background: var(--sakura-primary-bg);
+    background: rgba(223, 145, 147, 0.12);
+    border-radius: 6px;
+    box-shadow: inset 2px 0 0 var(--sakura-primary);
   }
-  .post-toc__sub { padding-left: 0; margin-left: 1.6em; }
-  .post-toc__sub--deep { margin-left: 3.2em; }
+  .post-toc__sub { padding-left: 0; margin-left: 1.2em; border-left: 1px dashed var(--border-color); padding-left: 0.6em; }
+  .post-toc__sub--deep { margin-left: 2.4em; }
 
   .post-content-area { min-width: 0; overflow-x: hidden; }
 

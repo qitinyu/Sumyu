@@ -85,20 +85,23 @@ const statusLabel: Record<string, string> = {
   </div>
 </Layout>
 
-<script data-astro-rerun>
-  // ---- 标签筛选 ----
-  const tabs = document.querySelectorAll('.anime-tab');
-  const cards = document.querySelectorAll('.anime-card[data-status]');
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      tabs.forEach(t => t.classList.remove('is-active'));
-      tab.classList.add('is-active');
-      const status = tab.getAttribute('data-status');
-      cards.forEach(c => {
-        c.style.display = (status === 'all' || c.getAttribute('data-status') === status) ? '' : 'none';
+<script>
+  function initAnimeFilter() {
+    const tabs = document.querySelectorAll('.anime-tab');
+    const cards = document.querySelectorAll('.anime-card[data-status]');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('is-active'));
+        tab.classList.add('is-active');
+        const status = tab.getAttribute('data-status');
+        cards.forEach(c => {
+          c.style.display = (status === 'all' || c.getAttribute('data-status') === status) ? '' : 'none';
+        });
       });
     });
-  });
+  }
+  initAnimeFilter();
+  document.addEventListener('astro:page-load', initAnimeFilter);
 </script>
 
 <style>
@@ -144,7 +147,7 @@ const statusLabel: Record<string, string> = {
   }
 
   .anime-card__cover {
-    width: 96px; flex-shrink: 0;
+    width: 140px; flex-shrink: 0;
     background: var(--bg-soft); overflow: hidden;
   }
   .anime-card__cover img {

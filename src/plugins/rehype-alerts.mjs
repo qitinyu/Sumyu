@@ -1,16 +1,9 @@
 /**
- * remark-alerts.mjs
- * Parse GitHub-style alerts: >[!note], >[!tip], >[!warning], >[!important], >[!caution]
- * and wrap them in <div class="github-alert" data-type="..."> elements.
- *
- * 支持两种写法:
- *   >[!tip] 标题文字
- *   >[!tip]
- *   >内容文字
+ * rehype-alerts.mjs
+ * Convert GitHub-style alert blockquotes to styled HTML.
+ * Works at the HTML AST level, so it's processor-agnostic.
  */
 import { visit } from 'unist-util-visit';
-
-const ALERT_TYPES = new Set(['note', 'tip', 'warning', 'important', 'caution']);
 
 const ALERT_CONFIG = {
   note: { icon: '📌', title: 'NOTE' },
@@ -20,23 +13,24 @@ const ALERT_CONFIG = {
   caution: { icon: '🔒', title: 'CAUTION' },
 };
 
-export default function remarkAlerts() {
+export default function rehypeAlerts() {
   return (tree) => {
-    visit(tree, 'blockquote', (node, index, parent) => {
+    visit(tree, 'element', (node, index, parent) => {
       if (!parent || index == null) return;
+      if (node.tagName !== 'blockquote') return;
 
       const firstChild = node.children?.[0];
-      if (!firstChild || firstChild.type !== 'paragraph') return;
+      if (!firstChild || firstChild.type !== 'element' || firstChild.tagName !== 'p') return;
 
       const textNodes = firstChild.children?.filter((c) => c.type === 'text') || [];
       const allText = textNodes.map((c) => c.value).join('') || '';
 
       const match = allText.match(/^\[!(\w+)\]\s*/);
-      if (!match || !ALERT_TYPES.has(match[1].toLowerCase())) return;
+      if (!match || !ALERT_CONFIG[match[1].toLowerCase()]) return;
 
       const alertType = match[1].toLowerCase();
-      const markerLen = match[0].length;
       const config = ALERT_CONFIG[alertType];
+      const markerLen = match[0].length;
 
       let remaining = markerLen;
       const newChildren = [];
@@ -62,16 +56,38 @@ export default function remarkAlerts() {
         node.children.shift();
       }
 
-      const htmlNode = {
-        type: 'html',
-        value: `<div class="github-alert" data-type="${alertType}"><div class="github-alert__header"><span class="github-alert__icon">${config.icon}</span><span>${config.title}</span></div><div class="github-alert__content">`,
-      };
-      const closingHtml = {
-        type: 'html',
-        value: '</div></div>',
+      const alertDiv = {
+        type: 'element',
+        tagName: 'div',
+        properties: {
+          className: ['github-alert'],
+          'data-type': alertType,
+        },
+        children: [
+          {
+            type: 'element',
+            tagName: 'div',
+            properties: { className: ['github-alert__header'] },
+            children: [
+              {
+                type: 'element',
+                tagName: 'span',
+                properties: { className: ['github-alert__icon'] },
+                children: [{ type: 'text', value: config.icon }],
+              },
+              { type: 'text', value: config.title },
+            ],
+          },
+          {
+            type: 'element',
+            tagName: 'div',
+            properties: { className: ['github-alert__content'] },
+            children: node.children,
+          },
+        ],
       };
 
-      parent.children.splice(index, 1, htmlNode, ...node.children, closingHtml);
+      parent.children[index] = alertDiv;
     });
   };
 }

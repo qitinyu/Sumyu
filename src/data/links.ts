@@ -133,7 +133,7 @@ export const friendLinks: LinkItem[] = [
   {
   
     name: "mikus",
-    avatar: "https://mikus.ink/_astro/miku.Dq7hXSsT_ZuHYtf.webp",
+    avatar: "https://blog.mikus.ink/_astro/mikus.BBfXqreF_2hkzhY.webp",
     url: "https://mikus.ink/",
     desc: "你好，世界。",
     tags: ['friends'] ,
@@ -149,7 +149,6 @@ export const friendLinks: LinkItem[] = [
   },
 
   {
-  
     name: "UpXuu's Blog",
     avatar: "https://upxuu.com/images/me.jpg",
     url: "https://upxuu.com/",
@@ -157,12 +156,12 @@ export const friendLinks: LinkItem[] = [
     tags: ['friends'] ,
   },
 
-  {
-
-		name: "𝔖𝔥𝔞𝔴𝔜𝔬𝔲𝔫𝔤",
-		avatar: "https://yoviz.dpdns.org/_astro/avatar.JHDUpy2g_1YHEgb.webp",
-		url: "https://yoviz.dpdns.org/",
-    desc: "过往皆为序章，未来自有光芒",
+{
+    name: 'YoYun',
+    url: 'https://yun52.cyou/',
+    avatar: '#',
+    desc: '请输入文本',
     tags: ['friends'] ,
-	},
+},
+  
 ];

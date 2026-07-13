@@ -24,7 +24,7 @@ const totalPages = Math.max(1, Math.ceil(sortedPosts.length / POSTS_PAGE_SIZE));
     <div class="container">
       <!-- 公告栏 + 随机轮播文章 + 站点统计 -->
       <div class="home-posts__notice">
-        <NoticeBoard />
+        <NoticeBoard randomPosts={sortedPosts} />
       </div>
 
       <header class="home-posts__head" id="posts-head">
@@ -58,40 +58,35 @@ const totalPages = Math.max(1, Math.ceil(sortedPosts.length / POSTS_PAGE_SIZE));
   </section>
 </Layout>
 
-<script data-astro-rerun>
-  const pagination = document.getElementById('home-pagination');
-  const sectionHeader = document.getElementById('posts-head');
-  if (pagination) {
+<script>
+  function initHomePagination() {
+    const pagination = document.getElementById('home-pagination');
+    const sectionHeader = document.getElementById('posts-head');
+    if (!pagination) return;
+
     const total = parseInt(pagination.dataset.totalPages || '1', 10);
     let currentPage = 1;
-    // initialLoad 标记: 进入页面时的初始化阶段, 不滚动到博文标题
-    let initialLoad = true;
 
     const items = document.querySelectorAll('#posts-list .post-page-item');
     const pageNumBtns = pagination.querySelectorAll('.home-pagination__page');
-    const prevBtn = document.getElementById('page-prev') as HTMLButtonElement | null;
-    const nextBtn = document.getElementById('page-next') as HTMLButtonElement | null;
+    const prevBtn = document.getElementById('page-prev');
+    const nextBtn = document.getElementById('page-next');
     const currentLabel = document.getElementById('page-current');
 
-    function goTo(page: number, scroll: boolean = true) {
+    function goTo(page, scroll = true) {
       page = Math.min(Math.max(1, page), total);
       currentPage = page;
-      // 显示/隐藏文章卡片
       items.forEach(item => {
         const p = parseInt(item.getAttribute('data-page') || '1', 10);
-        (item as HTMLElement).style.display = p === page ? '' : 'none';
+        item.style.display = p === page ? '' : 'none';
       });
-      // 更新页码按钮高亮
       pageNumBtns.forEach(btn => {
         const p = parseInt(btn.getAttribute('data-page') || '1', 10);
         btn.classList.toggle('is-active', p === page);
       });
-      // 更新当前页码文字
       if (currentLabel) currentLabel.textContent = String(page);
-      // 更新上一页/下一页按钮状态
       if (prevBtn) prevBtn.disabled = page <= 1;
       if (nextBtn) nextBtn.disabled = page >= total;
-      // 更新 URL 参数
       const url = new URL(window.location.href);
       if (page > 1) {
         url.searchParams.set('page', String(page));
@@ -99,31 +94,38 @@ const totalPages = Math.max(1, Math.ceil(sortedPosts.length / POSTS_PAGE_SIZE));
         url.searchParams.delete('page');
       }
       history.replaceState(null, '', url.toString());
-      // 仅在用户主动翻页 (非初始加载) 时滚动到博文标题处
-      if (scroll && !initialLoad) {
+      if (scroll) {
         sectionHeader?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
 
-    // 初始化: 隐藏非第一页的文章, 不滚动
+    // 初始化: 隐藏非第一页的文章
     const urlPage = parseInt(new URLSearchParams(window.location.search).get('page') || '1', 10);
     if (urlPage > 1 && urlPage <= total) {
       goTo(urlPage, false);
     } else {
       goTo(1, false);
     }
-    // 初始化完成, 后续翻页操作均触发滚动
-    initialLoad = false;
 
-    // 绑定事件: 翻页/点击页码 → 滚动到博文标题处
-    pageNumBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        goTo(parseInt(btn.getAttribute('data-page') || '1', 10), true);
-      });
+    // 使用事件委托，避免重复绑定
+    pagination.addEventListener('click', (e) => {
+      const pageBtn = e.target.closest('.home-pagination__page');
+      if (pageBtn) {
+        goTo(parseInt(pageBtn.getAttribute('data-page') || '1', 10), true);
+        return;
+      }
+      if (e.target.closest('#page-prev')) {
+        goTo(currentPage - 1, true);
+        return;
+      }
+      if (e.target.closest('#page-next')) {
+        goTo(currentPage + 1, true);
+        return;
+      }
     });
-    prevBtn?.addEventListener('click', () => goTo(currentPage - 1, true));
-    nextBtn?.addEventListener('click', () => goTo(currentPage + 1, true));
   }
+  initHomePagination();
+  document.addEventListener('astro:page-load', initHomePagination);
 </script>
 
 <style>

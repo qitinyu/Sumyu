@@ -27,6 +27,9 @@ import { MUSIC } from '@/config';
           <div class="music-panel__song-artist" id="music-artist">--</div>
         </div>
       </div>
+      <div class="music-panel__status" id="music-status" style="display:none;">
+        <span class="music-panel__status-text" id="music-status-text"></span>
+      </div>
       <div class="music-panel__progress">
         <span class="music-panel__time" id="music-time-cur">0:00</span>
         <div class="music-panel__progress-bar" id="music-progress">
@@ -318,9 +321,11 @@ import { MUSIC } from '@/config';
       return;
     }
     if (songs.length > 0) return;
+    showStatus('加载歌单中...', false);
     try {
       const url = `${MUSIC_CFG.api}?server=${MUSIC_CFG.server}&type=${MUSIC_CFG.type}&id=${MUSIC_CFG.id}`;
       const res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       songs = (Array.isArray(data) ? data : []).map((it: any) => ({
         name: it.name || it.title || '未知',
@@ -329,7 +334,8 @@ import { MUSIC } from '@/config';
         pic: it.pic || it.cover || '',
         lrc: it.lrc || '',
       })).filter((s: Song) => s.url);
-      if (songs.length === 0) return;
+      hideStatus();
+      if (songs.length === 0) { showStatus('歌单为空', true); return; }
       cacheSongs();
       const saved = restoreState();
       if (saved) {
@@ -345,9 +351,25 @@ import { MUSIC } from '@/config';
       }
       renderList();
       updatePlayBtn();
-    } catch (e) {
+    } catch (e: any) {
+      hideStatus();
+      showStatus('歌单加载失败: ' + (e.message || '网络异常'), true);
       console.warn('[Music] 加载歌单失败', e);
     }
+  }
+
+  function showStatus(text, isError) {
+    const statusEl = document.getElementById('music-status');
+    const textEl = document.getElementById('music-status-text');
+    if (!statusEl || !textEl) return;
+    if (!text) { statusEl.style.display = 'none'; return; }
+    textEl.textContent = text;
+    statusEl.style.display = 'block';
+    statusEl.classList.toggle('is-error', !!isError);
+  }
+  function hideStatus() {
+    const statusEl = document.getElementById('music-status');
+    if (statusEl) statusEl.style.display = 'none';
   }
 
   function setPanelOpen(open: boolean) {
@@ -355,7 +377,7 @@ import { MUSIC } from '@/config';
     musicPanelIsOpen = open;
     $panel.classList.toggle('is-open', open);
     $panel.setAttribute('aria-hidden', String(!open));
-    if (open) loadSongs();
+    if (open && songs.length === 0) loadSongs();
   }
 
   // ===== Audio 事件 (仅绑定一次, audio 元素已 transition:persist) =====
@@ -622,6 +644,13 @@ import { MUSIC } from '@/config';
     font-size: 11px; color: var(--text-muted); margin-top: 3px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
+  .music-panel__status {
+    padding: 0 14px 8px;
+    font-size: 11px;
+    color: var(--sakura-primary);
+    text-align: center;
+  }
+  .music-panel__status.is-error { color: #e74c3c; }
 
   .music-panel__progress {
     display: flex; align-items: center; gap: 8px;

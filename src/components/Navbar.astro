@@ -66,28 +66,36 @@ const isActive = (href: string) => {
   </div>
 </header>
 
-<script data-astro-rerun>
+<script>
   // ---- 导航栏: 首页顶部透明(透出完整背景图), 滚动后不透明 ----
-  const navbar = document.getElementById('navbar');
-  const html = document.documentElement;
-  const isHome = html.classList.contains('is-home');
+  let navbarScrollBound = false;
+  function initNavbar() {
+    const navbar = document.getElementById('navbar');
+    const html = document.documentElement;
+    const isHome = html.classList.contains('is-home');
 
-  if (navbar && isHome) {
-    function updateNavbar() {
-      const scrollY = window.scrollY;
-      if (scrollY <= 10) {
-        navbar.classList.add('is-transparent');
-        navbar.classList.remove('is-scrolled');
-      } else {
-        navbar.classList.remove('is-transparent');
-        navbar.classList.add('is-scrolled');
+    if (navbar && isHome) {
+      function updateNavbar() {
+        const scrollY = window.scrollY;
+        if (scrollY <= 10) {
+          navbar.classList.add('is-transparent');
+          navbar.classList.remove('is-scrolled');
+        } else {
+          navbar.classList.remove('is-transparent');
+          navbar.classList.add('is-scrolled');
+        }
       }
+      updateNavbar();
+      if (!navbarScrollBound) {
+        navbarScrollBound = true;
+        window.addEventListener('scroll', updateNavbar, { passive: true });
+      }
+    } else if (navbar) {
+      navbar.classList.remove('is-transparent');
     }
-
-    // 初始化
-    updateNavbar();
-    window.addEventListener('scroll', updateNavbar, { passive: true });
   }
+  initNavbar();
+  document.addEventListener('astro:page-load', initNavbar);
 </script>
 
 <style>

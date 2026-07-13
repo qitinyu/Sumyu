@@ -257,6 +257,113 @@ html.dark .prose-sakura pre { background: #1e1e1e; border-color: #2a2a2a; }
 /* 表格横向滚动容器 (由 JS 自动包裹) */
 .prose-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 1.2em 0; border-radius: var(--radius-sm); }
 
+/* ========== GitHub Alert 样式 ========== */
+.github-alert {
+  margin: 1.2em 0;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  overflow: hidden;
+  position: relative;
+}
+.github-alert::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+.github-alert__header {
+  padding: 10px 16px 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  background: transparent;
+}
+.github-alert__icon {
+  font-size: 16px;
+}
+.github-alert__content {
+  padding: 6px 16px 14px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-base);
+}
+.github-alert__content p {
+  margin: 0;
+}
+
+/* Note */
+.github-alert[data-type="note"]::before {
+  background: #3b82f6;
+}
+.github-alert[data-type="note"] .github-alert__icon {
+  color: #3b82f6;
+}
+.github-alert[data-type="note"] .github-alert__header {
+  color: #2563eb;
+}
+
+/* Tip */
+.github-alert[data-type="tip"]::before {
+  background: #eab308;
+}
+.github-alert[data-type="tip"] .github-alert__icon {
+  color: #eab308;
+}
+.github-alert[data-type="tip"] .github-alert__header {
+  color: #2563eb;
+}
+
+/* Warning */
+.github-alert[data-type="warning"]::before {
+  background: #f59e0b;
+}
+.github-alert[data-type="warning"] .github-alert__icon {
+  color: #f59e0b;
+}
+.github-alert[data-type="warning"] .github-alert__header {
+  color: #2563eb;
+}
+
+/* Important */
+.github-alert[data-type="important"]::before {
+  background: #ef4444;
+}
+.github-alert[data-type="important"] .github-alert__icon {
+  color: #ef4444;
+}
+.github-alert[data-type="important"] .github-alert__header {
+  color: #2563eb;
+}
+
+/* Caution */
+.github-alert[data-type="caution"]::before {
+  background: #8b5cf6;
+}
+.github-alert[data-type="caution"] .github-alert__icon {
+  color: #8b5cf6;
+}
+.github-alert[data-type="caution"] .github-alert__header {
+  color: #2563eb;
+}
+
+/* Dark mode */
+html.dark .github-alert {
+  border-color: var(--border-color);
+  background: var(--bg-card);
+}
+html.dark .github-alert[data-type="note"] .github-alert__header,
+html.dark .github-alert[data-type="tip"] .github-alert__header,
+html.dark .github-alert[data-type="warning"] .github-alert__header,
+html.dark .github-alert[data-type="important"] .github-alert__header,
+html.dark .github-alert[data-type="caution"] .github-alert__header {
+  color: #60a5fa;
+}
+
 /* ========== 右下角悬浮图标 ========== */
 .floating-actions {
   position: fixed; right: 20px; bottom: 28px; z-index: 990;
