@@ -10,13 +10,13 @@ interface Props {
 
 const { randomPosts = [] } = Astro.props;
 
-// 读取 /public/hero 目录下的图片
-const heroDir = path.join(process.cwd(), 'public', 'hero');
+// 读取 /public/hero/suiji 目录下的图片
+const heroDir = path.join(process.cwd(), 'public', 'hero', 'suiji');
 let heroImages: string[] = [];
 try {
   heroImages = fs.readdirSync(heroDir)
     .filter(f => /\.(webp|jpg|jpeg|png|gif)$/i.test(f))
-    .map(f => `/hero/${f}`);
+    .map(f => `/hero/suiji/${f}`);
 } catch (e) {
   heroImages = [];
 }
@@ -34,7 +34,7 @@ const lastEditDate = latestPost
 ---
 
 <section class="notice-board-wrap">
-  <!-- 三列: 公告(左) + 随机图片(中) + 随机文章+统计(右) -->
+  <!-- 上方三列: 公告(左) + 随机图片(中) + 随机文章(右) -->
   <div class="notice-board__row-top">
     <!-- 站点公告 -->
     <div class="notice-board__section notice-board__section--announce">
@@ -73,8 +73,8 @@ const lastEditDate = latestPost
       </div>
     </div>
 
-    <!-- 右列: 滚筒式随机文章 + 站点统计 -->
-    <div class="notice-board__section notice-board__section--right">
+    <!-- 滚筒式随机文章 -->
+    <div class="notice-board__section notice-board__section--articles">
       <h3 class="notice-board__heading">
         <iconify-icon icon="ri:article-line" aria-hidden="true"></iconify-icon>
         随机文章
@@ -89,39 +89,38 @@ const lastEditDate = latestPost
           ))}
         </div>
       </div>
+    </div>
+  </div>
 
-      <h3 class="notice-board__heading" style="margin-top: 16px;">
-        <iconify-icon icon="ri:bar-chart-box-line" aria-hidden="true"></iconify-icon>
-        站点统计
-      </h3>
-      <div class="site-stats site-stats--compact">
-        <div class="site-stats__item">
-          <iconify-icon icon="ri:time-line" aria-hidden="true"></iconify-icon>
-          <div class="site-stats__info">
-            <span class="site-stats__value" id="stat-runtime">0 天</span>
-            <span class="site-stats__label">运行时长</span>
-          </div>
+  <!-- 下方横向站点统计 4*1 布局 -->
+  <div class="notice-board__row-bottom">
+    <div class="site-stats site-stats--horizontal">
+      <div class="site-stats__item">
+        <iconify-icon icon="ri:time-line" aria-hidden="true"></iconify-icon>
+        <div class="site-stats__info">
+          <span class="site-stats__value" id="stat-runtime">0 天</span>
+          <span class="site-stats__label">运行时长</span>
         </div>
-        <div class="site-stats__item">
-          <iconify-icon icon="ri:file-text-line" aria-hidden="true"></iconify-icon>
-          <div class="site-stats__info">
-            <span class="site-stats__value">{totalArticles}</span>
-            <span class="site-stats__label">文章总数</span>
-          </div>
+      </div>
+      <div class="site-stats__item">
+        <iconify-icon icon="ri:file-text-line" aria-hidden="true"></iconify-icon>
+        <div class="site-stats__info">
+          <span class="site-stats__value">{totalArticles}</span>
+          <span class="site-stats__label">文章总数</span>
         </div>
-        <div class="site-stats__item">
-          <iconify-icon icon="ri:quill-pen-line" aria-hidden="true"></iconify-icon>
-          <div class="site-stats__info">
-            <span class="site-stats__value">{TOTAL_WORD_COUNT}</span>
-            <span class="site-stats__label">总字数</span>
-          </div>
+      </div>
+      <div class="site-stats__item">
+        <iconify-icon icon="ri:quill-pen-line" aria-hidden="true"></iconify-icon>
+        <div class="site-stats__info">
+          <span class="site-stats__value">{TOTAL_WORD_COUNT}</span>
+          <span class="site-stats__label">总字数</span>
         </div>
-        <div class="site-stats__item">
-          <iconify-icon icon="ri:edit-line" aria-hidden="true"></iconify-icon>
-          <div class="site-stats__info">
-            <span class="site-stats__value">{lastEditDate ? formatDate(lastEditDate) : '暂无'}</span>
-            <span class="site-stats__label">最后编辑</span>
-          </div>
+      </div>
+      <div class="site-stats__item">
+        <iconify-icon icon="ri:edit-line" aria-hidden="true"></iconify-icon>
+        <div class="site-stats__info">
+          <span class="site-stats__value">{lastEditDate ? formatDate(lastEditDate) : '暂无'}</span>
+          <span class="site-stats__label">最后编辑</span>
         </div>
       </div>
     </div>
@@ -236,12 +235,17 @@ const lastEditDate = latestPost
     box-shadow: var(--shadow-sm);
   }
 
-  /* 三列: 公告(左) + 图片(中) + 文章+统计(右) */
+  /* 上方三列: 公告(左) + 图片(中) + 文章(右) */
   .notice-board__row-top {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     gap: 24px;
     align-items: start;
+  }
+
+  /* 下方站点统计横向排列 */
+  .notice-board__row-bottom {
+    margin-top: 20px;
   }
 
   /* 通用题头 */
@@ -367,6 +371,11 @@ const lastEditDate = latestPost
   .site-stats {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
   }
+  /* 横向 4*1 布局 */
+  .site-stats--horizontal {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+  }
   .site-stats--compact {
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
@@ -388,8 +397,9 @@ const lastEditDate = latestPost
   @media (max-width: 768px) {
     .notice-board-wrap { padding: 18px; gap: 20px; }
     .notice-board__row-top { grid-template-columns: 1fr; gap: 20px; }
+    .notice-board__row-bottom { margin-top: 16px; }
     .image-carousel__frame { aspect-ratio: 16 / 9; }
-    .site-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .site-stats--horizontal { grid-template-columns: repeat(2, 1fr); gap: 12px; }
     .site-stats__item { padding: 12px; gap: 8px; }
     .site-stats__value { font-size: 14px; }
   }

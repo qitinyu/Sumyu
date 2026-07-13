@@ -7,7 +7,7 @@ export { projects, type ProjectItem } from './projects';
 export { galleryAlbums, getAlbumBySlug, type GalleryAlbum, type GalleryImage } from './files';
 export { games, gamesCarousel, type GameItem } from './games';
 export { animeList, type AnimeItem, type AnimeStatus } from './anime';
-export { lesList, lesPageMeta, type LesItem } from './les';
+export { lesPageMeta } from './les';
 export { friendLinks, type LinkItem } from './links';
 export { aboutData } from './about';
 export { siteInfo, siteStats, pageIndex, rssFriends, type SiteInfoRow, type StatItem, type PageIndexItem, type RssFriendItem } from './rss';

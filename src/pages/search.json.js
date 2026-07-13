@@ -17,25 +17,25 @@ export async function GET() {
     tags: p.data.tags,
   }));
 
-  // 相册 (留芳)
+  // 相册
   const galleryData = galleryAlbums.map(g => ({
     type: '相册',
     title: g.name,
-    description: g.desc || `共 ${g.images.length} 张照片`,
-    url: `/files/${g.slug}/`,
+    description: `共 ${g.images.length} 张照片`,
+    url: '/gallery/',
     date: '',
-    category: '留芳',
+    category: '相册',
     tags: ['相册', g.name],
   }));
 
-  // 番剧 (忆影)
+  // 番剧
   const animeData = animeList.map(a => ({
     type: '番剧',
     title: a.title,
     description: a.description,
     url: a.link,
     date: a.year,
-    category: '忆影',
+    category: '番剧',
     tags: a.genre,
   }));
 
