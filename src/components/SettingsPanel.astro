@@ -80,6 +80,22 @@ import { SETTINGS_PANEL, THEME_COLORS, LIVE2D } from '@/config';
           </div>
         )}
 
+        {SETTINGS_PANEL.options.music && (
+          <div class="sakura-settings__row">
+            <div class="sakura-settings__row-label">
+              <iconify-icon icon="ri:music-2-line" aria-hidden="true"></iconify-icon>
+              <div>
+                <div class="sakura-settings__row-title">音乐播放器</div>
+                <div class="sakura-settings__row-desc">显示音乐播放器</div>
+              </div>
+            </div>
+            <label class="sakura-switch">
+              <input type="checkbox" id="setting-music" />
+              <span class="sakura-switch__slider"></span>
+            </label>
+          </div>
+        )}
+
         {SETTINGS_PANEL.options.themeColor && (
           <div class="sakura-settings__row sakura-settings__row--col">
             <div class="sakura-settings__row-label">
@@ -198,6 +214,23 @@ import { SETTINGS_PANEL, THEME_COLORS, LIVE2D } from '@/config';
     sakuraToggle?.addEventListener('change', () => {
       localStorage.setItem('sumyu-sakura', String(sakuraToggle.checked));
       applySakura(sakuraToggle.checked);
+    });
+
+    // Music toggle (默认 false)
+    const musicToggle = document.getElementById('setting-music') as HTMLInputElement | null;
+    const initialMusic = localStorage.getItem('sumyu-music');
+    const musicDefault = initialMusic === null ? false : initialMusic === 'true';
+    if (musicToggle) musicToggle.checked = musicDefault;
+    function applyMusic(on: boolean) {
+      const panel = document.getElementById('music-panel');
+      const btn = document.getElementById('music-open');
+      if (panel) panel.style.display = on ? '' : 'none';
+      if (btn) btn.style.display = on ? '' : 'none';
+    }
+    applyMusic(musicDefault);
+    musicToggle?.addEventListener('change', () => {
+      localStorage.setItem('sumyu-music', String(musicToggle.checked));
+      applyMusic(musicToggle.checked);
     });
 
     // Theme color

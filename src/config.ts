@@ -119,6 +119,7 @@ export const SETTINGS_PANEL = {
     sakura: true,
     themeColor: true,
     darkMode: true,
+    music: true,
   },
 };
 
@@ -157,8 +158,8 @@ export const LIVE2D = {
 // ========== 站点公告 (3 条) ==========
 export const ANNOUNCEMENTS = [
   '欢迎来到 Sumyu 的个人博客！',
-  '博客更新至v1.0.5,为博客添加Yuamli评论系统。',
   '博客更新至v1.0.6,修复文章相关问题。',
+  '博客更新至v1.0.7,修复rss/音乐播放器/随机图片相关问题。',
 ];
 
 // ========== 站点统计配置 ==========

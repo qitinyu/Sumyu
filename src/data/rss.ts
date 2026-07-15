@@ -145,8 +145,8 @@ export const rssFriends: RssFriendItem[] = [
 {
   name: '北に向かう',
   url: 'https://ignorant.top/',
-  feed: '',
-  avatar: 'https://i.ibb.co/SwVb53mQ/avatar.webpg'
+  feed: 'https://ignorant.top/rss.xml',
+  avatar: 'https://i.ibb.co/SwVb53mQ/avatar.webp'
 },
 {
   name: '灵梦的小站',
@@ -181,7 +181,7 @@ export const rssFriends: RssFriendItem[] = [
 {
   name: '南wind',
   url: 'https://blog.emumu.xyz/',
-  feed: 'https://blog.emumu.xyz/rss.xml',
+  feed: '',
   avatar: 'https://pic1.imgdb.cn/item/69c905abb1655e1da0faef76.jpg'
 },
 {

@@ -94,6 +94,11 @@ import { MUSIC } from '@/config';
   type SavedState = { currentIndex: number; currentTime: number; isPlaying: boolean; playMode: PlayMode };
 
   // ===== 模块级状态 (跨页面持久化) =====
+  // 检查 localStorage 音乐开关, 若关闭则隐藏整个面板
+  function checkMusicEnabled() {
+    const val = localStorage.getItem('sumyu-music');
+    return val === null ? false : val === 'true';
+  }
   let songs: Song[] = [];
   let currentIndex = 0;
   let playMode: PlayMode = 'order';
@@ -448,6 +453,13 @@ import { MUSIC } from '@/config';
 
   // ===== 页面级初始化 (UI 绑定, 每次 View Transition 后重新绑定) =====
   function initMusicUI() {
+    // 根据 localStorage 开关控制显示
+    if (!checkMusicEnabled()) {
+      const p = document.getElementById('music-panel');
+      const b = document.getElementById('music-open');
+      if (p) p.style.display = 'none';
+      if (b) b.style.display = 'none';
+    }
     $panel = document.getElementById('music-panel');
     $popup = document.getElementById('music-popup');
     $audio = document.getElementById('music-audio') as HTMLAudioElement | null;
@@ -483,6 +495,11 @@ import { MUSIC } from '@/config';
       lastToggleTime = Date.now();
       setPanelOpen(!musicPanelIsOpen);
     });
+    $musicOpen?.addEventListener('touchstart', (e) => {
+      if (e.cancelable) e.preventDefault();
+      lastToggleTime = Date.now();
+      setPanelOpen(!musicPanelIsOpen);
+    }, { passive: false });
     document.getElementById('music-close')?.addEventListener('click', (e) => {
       e.stopPropagation();
       lastToggleTime = Date.now();
@@ -533,7 +550,11 @@ import { MUSIC } from '@/config';
       saveState();
     });
 
-    // 恢复 UI 状态
+    // 恢复 UI 状态 (覆盖等信息会在 View Transition 后丢失, 需要重新设置)
+    const songIdx = currentIndex;
+    if (songIdx >= 0 && songIdx < songs.length) {
+      updateSongInfo();
+    }
     updatePlayBtn();
     renderList();
     if (musicPanelIsOpen) {

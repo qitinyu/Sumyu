@@ -27,14 +27,18 @@ const shuffledImages = [...heroImages].sort(() => Math.random() - 0.5);
 // 用于滚筒的随机文章数据（打乱后最多取 20 篇）
 const rollerPosts = [...randomPosts].sort(() => Math.random() - 0.5).slice(0, 20);
 const totalArticles = randomPosts.length;
-const latestPost = randomPosts[0] ?? null;
+const latestPost = [...randomPosts].sort((a, b) => {
+  const aDate = a.data.updatedDate || a.data.pubDate;
+  const bDate = b.data.updatedDate || b.data.pubDate;
+  return bDate.getTime() - aDate.getTime();
+})[0] ?? null;
 const lastEditDate = latestPost
   ? (latestPost.data.updatedDate || latestPost.data.pubDate)
   : null;
 ---
 
 <section class="notice-board-wrap">
-  <!-- 上方三列: 公告(左) + 随机图片(中) + 随机文章(右) -->
+  <!-- 上方三列: 公告(左) + 随机文章(中) + 随机图片(右) -->
   <div class="notice-board__row-top">
     <!-- 站点公告 -->
     <div class="notice-board__section notice-board__section--announce">
@@ -50,6 +54,24 @@ const lastEditDate = latestPost
           </li>
         ))}
       </ul>
+    </div>
+
+    <!-- 滚筒式随机文章 -->
+    <div class="notice-board__section notice-board__section--articles">
+      <h3 class="notice-board__heading">
+        <iconify-icon icon="ri:article-line" aria-hidden="true"></iconify-icon>
+        随机文章
+      </h3>
+      <div class="roller" id="roller">
+        <div class="roller__track" id="roller-track">
+          {rollerPosts.map((post, i) => (
+            <a class={`roller__card${i === 0 ? ' is-active' : ''}`} href={`/posts/${post.id}/`} data-idx={i}>
+              <span class="roller__title">{post.data.title}</span>
+              <span class="roller__meta">{formatDate(post.data.pubDate)} · {post.data.category}</span>
+            </a>
+          ))}
+        </div>
+      </div>
     </div>
 
     <!-- 随机图片轮播 -->
@@ -68,24 +90,6 @@ const lastEditDate = latestPost
         <div class="image-carousel__dots" role="tablist" aria-label="图片切换">
           {shuffledImages.map((_, i) => (
             <button type="button" class={`image-carousel__dot${i === 0 ? ' is-active' : ''}`} data-idx={i} role="tab" aria-label={`切换到第 ${i + 1} 张图片`}></button>
-          ))}
-        </div>
-      </div>
-    </div>
-
-    <!-- 滚筒式随机文章 -->
-    <div class="notice-board__section notice-board__section--articles">
-      <h3 class="notice-board__heading">
-        <iconify-icon icon="ri:article-line" aria-hidden="true"></iconify-icon>
-        随机文章
-      </h3>
-      <div class="roller" id="roller">
-        <div class="roller__track" id="roller-track">
-          {rollerPosts.map((post, i) => (
-            <a class={`roller__card${i === 0 ? ' is-active' : ''}`} href={`/posts/${post.id}/`} data-idx={i}>
-              <span class="roller__title">{post.data.title}</span>
-              <span class="roller__meta">{formatDate(post.data.pubDate)} · {post.data.category}</span>
-            </a>
           ))}
         </div>
       </div>
@@ -228,7 +232,6 @@ const lastEditDate = latestPost
 <style>
   .notice-board-wrap {
     display: flex; flex-direction: column; gap: 20px;
-    background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     padding: 24px;
@@ -250,17 +253,17 @@ const lastEditDate = latestPost
 
   /* 通用题头 */
   .notice-board__heading {
-    font-size: 15px; color: var(--sakura-primary); font-weight: 600;
-    display: inline-flex; align-items: center; gap: 6px;
-    margin-bottom: 14px;
+    font-size: 14px; color: var(--sakura-primary); font-weight: 600;
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-bottom: 8px;
   }
-  .notice-board__heading iconify-icon { font-size: 18px; }
+  .notice-board__heading iconify-icon { font-size: 16px; }
 
   /* ---- 站点公告列表 ---- */
-  .notice-board__list { display: flex; flex-direction: column; gap: 8px; }
+  .notice-board__list { display: flex; flex-direction: column; gap: 12px; }
   .notice-board__item {
     display: flex; align-items: flex-start; gap: 8px;
-    font-size: 13px; color: var(--text-base); line-height: 1.7;
+    font-size: 14px; color: var(--text-base); line-height: 1.9;
   }
   .notice-board__dot {
     flex-shrink: 0; width: 6px; height: 6px; border-radius: 50%;
@@ -272,21 +275,20 @@ const lastEditDate = latestPost
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
+    width: 100%;
   }
   .image-carousel__frame {
     width: 100%;
-    aspect-ratio: 4 / 3;
-    border-radius: var(--radius-md);
+    height: 236px;
+    border-radius: var(--radius-sm);
     overflow: hidden;
-    box-shadow: var(--shadow-md);
-    border: 3px solid #fff;
+    box-shadow: var(--shadow-sm);
     transition: transform var(--transition-base);
   }
-  html.dark .image-carousel__frame { border-color: var(--bg-soft); }
   .image-carousel__frame:hover { transform: scale(1.02); }
   .image-carousel__frame img {
-    width: 100%; height: 100%; object-fit: cover;
+    width: 100%; height: 100%; object-fit: contain;
     transition: opacity 0.3s;
   }
 
@@ -398,7 +400,6 @@ const lastEditDate = latestPost
     .notice-board-wrap { padding: 18px; gap: 20px; }
     .notice-board__row-top { grid-template-columns: 1fr; gap: 20px; }
     .notice-board__row-bottom { margin-top: 16px; }
-    .image-carousel__frame { aspect-ratio: 16 / 9; }
     .site-stats--horizontal { grid-template-columns: repeat(2, 1fr); gap: 12px; }
     .site-stats__item { padding: 12px; gap: 8px; }
     .site-stats__value { font-size: 14px; }
