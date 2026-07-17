@@ -1,45 +1,33 @@
-/**
- * remark-spoiler.mjs
- * Parse :spoiler[text] syntax and wrap in <span class="spoiler"><span class="spoiler-content">text</span></span>
- */
 import { visit } from 'unist-util-visit';
-
-const SPOILER_RE = /:spoiler\[(.+?)\]/g;
 
 export default function remarkSpoiler() {
   return (tree) => {
     visit(tree, 'text', (node, index, parent) => {
       if (!parent || index == null) return;
-      if (!SPOILER_RE.test(node.value)) return;
 
-      const value = node.value;
-      const nodes = [];
-      let lastIndex = 0;
-      SPOILER_RE.lastIndex = 0;
-
+      const regex = /:spoiler\[([^\]]+)\]/g;
       let match;
-      while ((match = SPOILER_RE.exec(value)) !== null) {
-        // Text before the spoiler
+      let lastIndex = 0;
+      const children = [];
+
+      while ((match = regex.exec(node.value)) !== null) {
         if (match.index > lastIndex) {
-          nodes.push({ type: 'text', value: value.slice(lastIndex, match.index) });
+          children.push({ type: 'text', value: node.value.slice(lastIndex, match.index) });
         }
-
-        // HTML for the spoiler
-        nodes.push({
+        children.push({
           type: 'html',
-          value: `<span class="spoiler"><span class="spoiler-content">${match[1]}</span></span>`,
+          value: `<span class="spoiler">${match[1]}</span>`,
         });
-
-        lastIndex = match.index + match[0].length;
+        lastIndex = regex.lastIndex;
       }
 
-      // Remaining text
-      if (lastIndex < value.length) {
-        nodes.push({ type: 'text', value: value.slice(lastIndex) });
+      if (children.length === 0) return;
+
+      if (lastIndex < node.value.length) {
+        children.push({ type: 'text', value: node.value.slice(lastIndex) });
       }
 
-      // Replace the text node
-      parent.children.splice(index, 1, ...nodes);
+      parent.children.splice(index, 1, ...children);
     });
   };
 }

@@ -96,6 +96,28 @@ import { SETTINGS_PANEL, THEME_COLORS, LIVE2D } from '@/config';
           </div>
         )}
 
+        {SETTINGS_PANEL.options.postLayout && (
+          <div class="sakura-settings__row">
+            <div class="sakura-settings__row-label">
+              <iconify-icon icon="ri:layout-grid-line" aria-hidden="true"></iconify-icon>
+              <div>
+                <div class="sakura-settings__row-title">博文布局</div>
+                <div class="sakura-settings__row-desc">列表 / 网格切换</div>
+              </div>
+            </div>
+            <div class="sakura-settings__layout-btns">
+              <button type="button" class="sakura-settings__layout-btn is-active" id="layout-list" data-layout="list">
+                <iconify-icon icon="ri:list-check" aria-hidden="true"></iconify-icon>
+                列表
+              </button>
+              <button type="button" class="sakura-settings__layout-btn" id="layout-grid" data-layout="grid">
+                <iconify-icon icon="ri:grid-line" aria-hidden="true"></iconify-icon>
+                网格
+              </button>
+            </div>
+          </div>
+        )}
+
         {SETTINGS_PANEL.options.themeColor && (
           <div class="sakura-settings__row sakura-settings__row--col">
             <div class="sakura-settings__row-label">
@@ -231,6 +253,28 @@ import { SETTINGS_PANEL, THEME_COLORS, LIVE2D } from '@/config';
     musicToggle?.addEventListener('change', () => {
       localStorage.setItem('sumyu-music', String(musicToggle.checked));
       applyMusic(musicToggle.checked);
+      if (musicToggle.checked) {
+        window.dispatchEvent(new CustomEvent('sumyu:music-enabled'));
+      }
+    });
+
+    // Post layout (列表/网格)
+    const layoutBtns = document.querySelectorAll('.sakura-settings__layout-btn');
+    const storedLayout = localStorage.getItem('sumyu-post-layout') || 'list';
+    function applyPostLayout(layout: string) {
+      const list = document.getElementById('posts-list');
+      if (list) {
+        list.classList.toggle('is-grid', layout === 'grid');
+      }
+      layoutBtns.forEach(b => b.classList.toggle('is-active', b.getAttribute('data-layout') === layout));
+    }
+    applyPostLayout(storedLayout);
+    layoutBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const layout = btn.getAttribute('data-layout') || 'list';
+        localStorage.setItem('sumyu-post-layout', layout);
+        applyPostLayout(layout);
+      });
     });
 
     // Theme color
@@ -383,6 +427,22 @@ import { SETTINGS_PANEL, THEME_COLORS, LIVE2D } from '@/config';
   }
   .sakura-settings__model:hover { border-color: var(--sakura-primary); color: var(--sakura-primary); }
   .sakura-settings__model.is-active {
+    background: var(--sakura-primary); color: #fff; border-color: var(--sakura-primary);
+  }
+
+  /* layout switch */
+  .sakura-settings__layout-btns {
+    display: flex; gap: 6px;
+  }
+  .sakura-settings__layout-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 5px 12px; border-radius: var(--radius-full);
+    background: var(--bg-soft); color: var(--text-base);
+    font-size: 12px; border: 1px solid var(--border-color);
+    cursor: pointer; transition: all var(--transition-fast);
+  }
+  .sakura-settings__layout-btn:hover { border-color: var(--sakura-primary); color: var(--sakura-primary); }
+  .sakura-settings__layout-btn.is-active {
     background: var(--sakura-primary); color: #fff; border-color: var(--sakura-primary);
   }
 </style>

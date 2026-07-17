@@ -140,7 +140,7 @@ export const rssFriends: RssFriendItem[] = [
   name: '绘夢の小站',
   url: 'https://blog.emumu.xyz/',
   feed: 'https://blog.emumu.xyz/rss.xml',
-  avatar: 'https://blog.emumu.xyz/_astro/avatar.Cmb-Gwdw_Z27NOcD.webp'
+  avatar: 'https://i.postimg.cc/XYhmW0f4/huimen.webp'
 },
 {
   name: '北に向かう',
@@ -160,12 +160,7 @@ export const rssFriends: RssFriendItem[] = [
   feed: 'https://blog.mxsby.top/rss.xml',
   avatar: 'https://blog.mxsby.top/_astro/Echo.J3vEEqiv_Z20z8hn.webp'
 },
-{
-  name: '柒喵の小屋',
-  url: 'https://www.qimiaoneko.com/',
-  feed: '',
-  avatar: 'https://www.qimiaoneko.com/_astro/home.Djbr-uEA_Zv5fVO.webp'
-},
+
 {
   name: '柊镜',
   url: 'https://www.kagamistarlight.top/',
@@ -176,7 +171,7 @@ export const rssFriends: RssFriendItem[] = [
   name: 'mikus',
   url: 'https://mikus.ink/',
   feed: 'https://mikus.ink/rss.xml',
-  avatar: 'https://mikus.ink/_astro/miku.Dq7hXSsT_ZuHYtf.webp'
+  avatar: 'https://i.postimg.cc/8z5gDHx9/mikus.webp'
 },
 {
   name: '南wind',

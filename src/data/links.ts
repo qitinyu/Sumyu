@@ -88,7 +88,7 @@ export const friendLinks: LinkItem[] = [
   {
   
     name: "绘夢の小站",
-    avatar: "https://blog.emumu.xyz/avatar.webp",
+    avatar: "https://i.postimg.cc/XYhmW0f4/huimen.webp",
     url: "https://blog.emumu.xyz/",
     desc: "我与我周旋久，宁作我",
     tags: ['friends'] ,
@@ -133,7 +133,7 @@ export const friendLinks: LinkItem[] = [
   {
   
     name: "mikus",
-    avatar: "https://blog.mikus.ink/_astro/mikus.BBfXqreF_2hkzhY.webp",
+    avatar: "https://i.postimg.cc/8z5gDHx9/mikus.webp",
     url: "https://mikus.ink/",
     desc: "你好，世界。",
     tags: ['friends'] ,

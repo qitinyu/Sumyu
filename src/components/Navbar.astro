@@ -70,12 +70,6 @@ const isActive = (href: string) => {
   // ---- 导航栏: 首页顶部透明(透出完整背景图), 滚动后不透明 ----
   let navbarScrollBound = false;
   function initNavbar() {
-    // 根据 localStorage 控制音乐按钮显示
-    const musicOpen = document.getElementById('music-open');
-    if (musicOpen) {
-      const musicVal = localStorage.getItem('sumyu-music');
-      musicOpen.style.display = musicVal === null || musicVal === 'false' ? 'none' : '';
-    }
     const navbar = document.getElementById('navbar');
     const html = document.documentElement;
     const isHome = html.classList.contains('is-home');

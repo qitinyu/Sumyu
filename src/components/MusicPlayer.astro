@@ -575,12 +575,26 @@ import { MUSIC } from '@/config';
   }
   setMode(playMode);
   updatePlayBtn();
-  // 3. 缓存优先 → 即时恢复, 后台静默刷新
-  if (!restoreFromCache()) {
-    loadSongs();
-  } else {
-    loadSongs();
+  // 3. 仅当音乐开关开启时才加载歌单
+  if (checkMusicEnabled()) {
+    if (!restoreFromCache()) {
+      loadSongs();
+    } else {
+      loadSongs();
+    }
   }
+
+  // 4. 监听设置面板发来的"音乐已启用"事件
+  window.addEventListener('sumyu:music-enabled', () => {
+    if (songs.length === 0) loadSongs();
+    // 显示按钮和面板（applyMusic 可能执行时元素还未就绪）
+    const p = document.getElementById('music-panel');
+    const b = document.getElementById('music-open');
+    if (p) p.style.display = '';
+    if (b) b.style.display = '';
+    // 自动弹出播放器
+    setPanelOpen(true);
+  });
 
   // View Transition 后仅重新绑定 UI (audio 持续播放)
   document.addEventListener('astro:page-load', initMusicUI);

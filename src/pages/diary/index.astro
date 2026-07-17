@@ -61,19 +61,20 @@ const totalPages = Math.max(1, Math.ceil(allDiary.length / DIARY_PAGE_SIZE));
   </div>
 </Layout>
 
-<script data-astro-rerun>
-  const pagination = document.getElementById('diary-pagination');
-  if (pagination) {
-    const total = parseInt(pagination.dataset.totalPages || '1', 10);
-    let currentPage = 1;
+<script>
+  function initDiaryPagination() {
+    const pagination = document.getElementById('diary-pagination');
+    if (!pagination) return;
 
+    const total = parseInt(pagination.dataset.totalPages || '1', 10);
     const items = document.querySelectorAll('#diary-list .diary-card');
     const pageNumBtns = pagination.querySelectorAll('.diary-pagination__page');
     const prevBtn = document.getElementById('diary-prev') as HTMLButtonElement | null;
     const nextBtn = document.getElementById('diary-next') as HTMLButtonElement | null;
     const pageHeader = document.querySelector('.page-header') as HTMLElement | null;
+    let currentPage = 1;
 
-    function goTo(page: number) {
+    function goTo(page: number, scroll = true) {
       page = Math.min(Math.max(1, page), total);
       currentPage = page;
       items.forEach(item => {
@@ -86,17 +87,29 @@ const totalPages = Math.max(1, Math.ceil(allDiary.length / DIARY_PAGE_SIZE));
       });
       if (prevBtn) prevBtn.disabled = page <= 1;
       if (nextBtn) nextBtn.disabled = page >= total;
-      pageHeader?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (scroll) pageHeader?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    pageNumBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        goTo(parseInt(btn.getAttribute('data-page') || '1', 10));
-      });
+    pagination.addEventListener('click', (e) => {
+      const pageBtn = e.target.closest('.diary-pagination__page');
+      if (pageBtn) {
+        goTo(parseInt(pageBtn.getAttribute('data-page') || '1', 10));
+        return;
+      }
+      if (e.target.closest('#diary-prev')) {
+        goTo(currentPage - 1);
+        return;
+      }
+      if (e.target.closest('#diary-next')) {
+        goTo(currentPage + 1);
+        return;
+      }
     });
-    prevBtn?.addEventListener('click', () => goTo(currentPage - 1));
-    nextBtn?.addEventListener('click', () => goTo(currentPage + 1));
+
+    goTo(1, false);
   }
+  initDiaryPagination();
+  document.addEventListener('astro:page-load', initDiaryPagination);
 </script>
 
 <style>

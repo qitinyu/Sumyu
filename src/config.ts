@@ -23,7 +23,7 @@ export const ICON = '/assets/logo.ico';
 //   3. 同时显示图片+文字: logo: { image: '/assets/logo.webp', text: 'Sumyu' }
 export const LOGO = {
   image: '/assets/logo.webp',
-  text: 'SHMYU',
+  text: 'SUMYU',
 } as {
   image?: string;
   text?: string;
@@ -57,6 +57,17 @@ export const HERO_SETTINGS = {
 export const HERO_IMAGES = [
   '/home/ht.webp',
 ];
+
+// ========== 随机图片 (轩窗板块公告栏随机图片轮播) ==========
+export const RANDOM_IMAGES = {
+  enable: true,
+  images: [
+    '/hero/suiji/les1.webp',
+    '/hero/suiji/les2.webp',
+    '/hero/suiji/les3.webp',
+    '/hero/suiji/les4.webp',
+  ],
+};
 
 // ========== 顶部导航: 五大版块 ==========
 // 轩窗 / 尺素 / 墨竹 / 拾遗 / 萍踪
@@ -120,6 +131,7 @@ export const SETTINGS_PANEL = {
     themeColor: true,
     darkMode: true,
     music: true,
+    postLayout: true,
   },
 };
 
@@ -137,29 +149,49 @@ export const THEME_COLORS = [
 // 模型文件放在 public/live2/models/<modelName>/ 目录下
 // position: 初始位置 (left/right), 用户可拖拽移动, 位置会持久化保存
 // width/height: 画布尺寸, 数值越大模型显示越大
+//export const LIVE2D = {
+//enabled: true,
+//modelPath: '/live2/models/cmtt/',
+//modelName: 'cmtt',
+//position: 'left',
+//bottom: 0,
+//left: 10,
+//right: 10,
+//width: 300,
+//height: 520,
+//scale: 0.15,
+//mobileOff: false,
+//modelList: [
+//{ name: 'cmtt', path: '/live2/models/cmtt/cmtt.model3.json' },
+//{ name: 'jk',   path: '/live2/models/jk/jk.model3.json' },
+//{ name: 'girl', path: '/live2/models/girl/girl.model3.json' },
+//  ],
+//};
+//
+
 export const LIVE2D = {
   enabled: true,
-  modelPath: '/live2/models/cmtt/',
-  modelName: 'cmtt',
-  position: 'left',
+  modelPath: 'https://cdn.jsdelivr.net/gh/qitinyu/yqlive2@v1.0.2/models/cmtt/',
+  modelName: 'cmtt', 
   bottom: 0,
   left: 10,
   right: 10,
-  width: 300,
-  height: 520,
+  width: 400,
+  height: 620,
   scale: 0.15,
   mobileOff: false,
   modelList: [
-    { name: 'cmtt', path: '/live2/models/cmtt/cmtt.model3.json' },
-    { name: 'jk',   path: '/live2/models/jk/jk.model3.json' },
+    { name: 'cmtt', path: 'https://cdn.jsdelivr.net/gh/qitinyu/yqlive2@v1.0.2/models/cmtt/cmtt.model3.json' },
+    { name: 'jk',   path: 'https://cdn.jsdelivr.net/gh/qitinyu/yqlive2@v1.0.2/models/jk/jk.model3.json' },
+    { name: 'girl', path: 'https://cdn.jsdelivr.net/gh/qitinyu/yqlive2@v1.0.2/models/girl/girl.model3.json' },    
   ],
 };
-
 // ========== 站点公告 (3 条) ==========
 export const ANNOUNCEMENTS = [
   '欢迎来到 Sumyu 的个人博客！',
-  '博客更新至v1.0.6,修复文章相关问题。',
-  '博客更新至v1.0.7,修复rss/音乐播放器/随机图片相关问题。',
+  '祝贺2026-07-15-胡桃胡堂主生日快乐!!',
+  '博客更新至v1.0.7,修复rss/音乐播放器/随机图片相关问题',
+  '博客更新至v1.0.8,修复一系列问题',
 ];
 
 // ========== 站点统计配置 ==========

@@ -1,8 +1,6 @@
 ---
-import { ANNOUNCEMENTS, SITE_START_DATE, TOTAL_WORD_COUNT } from '@/config';
+import { ANNOUNCEMENTS, SITE_START_DATE, TOTAL_WORD_COUNT, RANDOM_IMAGES } from '@/config';
 import { formatDate } from '@/utils/posts';
-import fs from 'node:fs';
-import path from 'node:path';
 
 interface Props {
   randomPosts?: any[];
@@ -10,19 +8,10 @@ interface Props {
 
 const { randomPosts = [] } = Astro.props;
 
-// 读取 /public/hero/suiji 目录下的图片
-const heroDir = path.join(process.cwd(), 'public', 'hero', 'suiji');
-let heroImages: string[] = [];
-try {
-  heroImages = fs.readdirSync(heroDir)
-    .filter(f => /\.(webp|jpg|jpeg|png|gif)$/i.test(f))
-    .map(f => `/hero/suiji/${f}`);
-} catch (e) {
-  heroImages = [];
-}
-
-// 用于轮播的随机图片（打乱顺序）
-const shuffledImages = [...heroImages].sort(() => Math.random() - 0.5);
+// 随机图片：从 config 读取，打乱顺序
+const shuffledImages = RANDOM_IMAGES.enable
+  ? [...RANDOM_IMAGES.images].sort(() => Math.random() - 0.5)
+  : [];
 
 // 用于滚筒的随机文章数据（打乱后最多取 20 篇）
 const rollerPosts = [...randomPosts].sort(() => Math.random() - 0.5).slice(0, 20);
@@ -39,7 +28,7 @@ const lastEditDate = latestPost
 
 <section class="notice-board-wrap">
   <!-- 上方三列: 公告(左) + 随机文章(中) + 随机图片(右) -->
-  <div class="notice-board__row-top">
+  <div class={`notice-board__row-top${shuffledImages.length === 0 ? ' notice-board__row-top--no-images' : ''}`}>
     <!-- 站点公告 -->
     <div class="notice-board__section notice-board__section--announce">
       <h3 class="notice-board__heading">
@@ -75,6 +64,7 @@ const lastEditDate = latestPost
     </div>
 
     <!-- 随机图片轮播 -->
+    {shuffledImages.length > 0 && (
     <div class="notice-board__section notice-board__section--images">
       <h3 class="notice-board__heading">
         <iconify-icon icon="ri:image-line" aria-hidden="true"></iconify-icon>
@@ -83,9 +73,7 @@ const lastEditDate = latestPost
       <div class="image-carousel" id="image-carousel"
         data-images={JSON.stringify(shuffledImages)}>
         <div class="image-carousel__frame">
-          {shuffledImages.length > 0 && (
-            <img src={shuffledImages[0]} alt="随机图片" loading="eager" fetchpriority="high" decoding="async" id="carousel-img" />
-          )}
+          <img src={shuffledImages[0]} alt="随机图片" loading="eager" fetchpriority="high" decoding="async" id="carousel-img" />
         </div>
         <div class="image-carousel__dots" role="tablist" aria-label="图片切换">
           {shuffledImages.map((_, i) => (
@@ -94,6 +82,7 @@ const lastEditDate = latestPost
         </div>
       </div>
     </div>
+    )}
   </div>
 
   <!-- 下方横向站点统计 4*1 布局 -->
@@ -244,6 +233,9 @@ const lastEditDate = latestPost
     grid-template-columns: 1fr 1fr 1fr;
     gap: 24px;
     align-items: start;
+  }
+  .notice-board__row-top--no-images {
+    grid-template-columns: 1fr 1fr;
   }
 
   /* 下方站点统计横向排列 */

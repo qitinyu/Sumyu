@@ -126,6 +126,15 @@ const totalPages = Math.max(1, Math.ceil(sortedPosts.length / POSTS_PAGE_SIZE));
   }
   initHomePagination();
   document.addEventListener('astro:page-load', initHomePagination);
+
+  // 博文布局初始化：从 localStorage 读取并应用
+  function initPostLayout() {
+    const layout = localStorage.getItem('sumyu-post-layout') || 'list';
+    const list = document.getElementById('posts-list');
+    if (list) list.classList.toggle('is-grid', layout === 'grid');
+  }
+  initPostLayout();
+  document.addEventListener('astro:page-load', initPostLayout);
 </script>
 
 <style>
@@ -145,6 +154,13 @@ const totalPages = Math.max(1, Math.ceil(sortedPosts.length / POSTS_PAGE_SIZE));
   .home-posts__count { font-size: 13px; color: var(--text-muted); }
 
   .home-posts__list { display: flex; flex-direction: column; gap: 14px; }
+
+  /* 网格模式 */
+  .home-posts__list.is-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
 
   .home-pagination {
     display: flex; align-items: center; justify-content: center; gap: 14px;
@@ -171,5 +187,8 @@ const totalPages = Math.max(1, Math.ceil(sortedPosts.length / POSTS_PAGE_SIZE));
   @media (max-width: 768px) {
     .home-posts { padding: 24px 16px 40px; }
     .home-posts__notice { margin-bottom: 28px; }
+    .home-posts__list.is-grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
