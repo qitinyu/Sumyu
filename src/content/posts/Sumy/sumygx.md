@@ -395,7 +395,7 @@ struct PhotoViewPickerComponent {
 1. 全局：
 
 - **禁用emoji图标**，采用**华为图标库**对应图标(https://developer.huawei.com/consumer/cn/design/)。如图所示图标。
-- 本软件目前所有的下拉的二级弹窗都采用图片中的形式：![图标示例/下拉示例](./assets/screenshot_20260630_005647_com.example.pageflip.jpg)
+- 本软件目前所有的下拉的二级弹窗都采用图片中的形式：
 
 2. **解决音乐播放器无法播放音乐的问题**。
 3. 轩窗板块：自建歌单和本地歌曲右边的+符号和下拉箭头保持样式统一，先+符号后下拉箭头。
@@ -427,8 +427,7 @@ struct PhotoViewPickerComponent {
 - 分享歌曲：是指用户点击后可以通过URL链接调用系统分享功能分享歌曲。
 - 歌曲下载：变灰色不可触发，因为目前不确定这个功能是否需要做，可能后期如果因为版权和技术原因不会启用，所以这里暂时为灰色不可触发但不删除，也可为后续如果不做歌曲下载而作其他功能留下接口。
 
-4. 陋室：整体大改，**去除现有图标占位**，以华为原生图标+功能名+右侧箭头的简单布局为主的小卡片，按区分布，点击箭头进入次级界面，如图[功能分区]![screenshot_20260630_023803_com.talon.yourpipe.jpg](./assets/screenshot_20260630_023803_com.talon.yourpipe.jpg) [次级界面/选择]![screenshot_20260630_024508_com.lxmusic.mobile.jpg](./assets/screenshot_20260630_024508_com.lxmusic.mobile.jpg)
-
+4. 陋室：整体大改，**去除现有图标占位**，以华为原生图标+功能名+右侧箭头的简单布局为主的小卡片，按区分布，点击箭头进入次级界面，
 > 分区如下：
 
 1. 自定义源
@@ -481,7 +480,6 @@ struct PhotoViewPickerComponent {
 - 取消歌词封面边上的黄色圈，改为方形封面稍带圆角。
 - 上一曲、暂停/开始、下一曲占据同一行，图标较大，水平垂直居中。
 - 添加歌单/播放形式/分享歌曲三个图标占据一行，位于页面最下面，水平垂直居中。
-  如图[播放器/歌词]![screenshot_20260630_033230_com.lxmusic.mobile.jpg](./assets/screenshot_20260630_033230_com.lxmusic.mobile.jpg)
 </details>
 ---
 
