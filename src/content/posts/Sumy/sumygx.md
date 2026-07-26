@@ -392,7 +392,7 @@ struct PhotoViewPickerComponent {
 1. 全局：
 
 - **禁用emoji图标**，采用**华为图标库**对应图标(https://developer.huawei.com/consumer/cn/design/)。如图所示图标。
-- 本软件目前所有的下拉的二级弹窗都采用图片中的形式：![图标示例/下拉示例](./assets/screenshot_20260630_005647_com.example.pageflip.jpg)
+- 本软件目前所有的下拉的二级弹窗都采用图片中的形式：![图标示例/下拉示例]()
 
 2. **解决音乐播放器无法播放音乐的问题**。
 3. 轩窗板块：自建歌单和本地歌曲右边的+符号和下拉箭头保持样式统一，先+符号后下拉箭头。
