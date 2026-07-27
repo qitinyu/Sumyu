@@ -159,8 +159,16 @@ export const friendLinks: LinkItem[] = [
 {
     name: 'YoYun',
     url: 'https://yun52.cyou/',
-    avatar: '#',
+    avatar: 'https://i.postimg.cc/6QdKc2Fv/mao-mao.gif',
     desc: '请输入文本',
+    tags: ['friends'] ,
+},
+
+{
+    name: '牢尘LC的官网',
+    url: 'https://dmxiaozi.top/',
+    avatar: 'https://dmxiaozi.top/img/tb.ico',
+    desc: '你的心像湖水一样净',
     tags: ['friends'] ,
 },
   

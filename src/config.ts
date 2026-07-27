@@ -62,10 +62,11 @@ export const HERO_IMAGES = [
 export const RANDOM_IMAGES = {
   enable: true,
   images: [
-    '/hero/suiji/les1.webp',
-    '/hero/suiji/les2.webp',
-    '/hero/suiji/les3.webp',
-    '/hero/suiji/les4.webp',
+    '/hero/suiji/kjys1.webp',
+    '/hero/suiji/kjys5.webp',
+    '/hero/suiji/kjys6.webp',
+    '/hero/suiji/kjys7.webp',
+    '/hero/suiji/kjys8.webp',
   ],
 };
 
@@ -115,10 +116,12 @@ export const NAV_SECTIONS = [
 // ========== 社交链接 (Hero 区域展示) ==========
 export const SOCIAL_LINKS = [
   { name: 'GitHub', url: 'https://github.com/qitinyu', icon: 'fa-brands fa-github-alt' },
-  { name: '米游社', url: 'https://www.miyoushe.com/sr/accountCenter/postList?id=227165994', icon: 'fa-brands fa-battle-net' },
-  { name: 'B站', url: 'https://space.bilibili.com/3461582895974946', icon: 'fab fa-bilibili' },
-  { name: 'QQ', url: 'https://qm.qq.com/cgi-bin/qm/qr?k=-A9MUAbpO68zcu1YAp11NiI3ir7WczLO', icon: 'fa-brands fa-qq' },
+  { name: 'Gitee', url: 'https://gitee.com/qi-tingyu', icon: 'fa-brands fa-bitbucket' },
+  { name: 'Gitcode', url: 'https://gitcode.com/user/YQAMM/repos', icon: 'fa-brands fa-codepen' },
   { name: 'Email', url: 'mailto:484894496@qq.com', icon: 'fa-solid fa-envelope' },
+  { name: '米游社', url: 'https://www.miyoushe.com/ys/accountCenter/postList?id=227165994', icon: 'fa-brands fa-battle-net' },
+  { name: 'B站', url: 'https://space.bilibili.com/3461582895974946', icon: 'fab fa-bilibili' },
+  
 ] as const;
 
 // ========== 设置面板 ==========

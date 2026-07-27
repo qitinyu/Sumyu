@@ -27,7 +27,7 @@ export const footerConfig = {
   powered: {
     framework: 'Astro',
     theme: 'Sumyu',
-    version: '1.0.8',
+    version: '1.1.0',
   },
   // 备案信息 (可选, 留空则不显示该行)
   icp: '',
