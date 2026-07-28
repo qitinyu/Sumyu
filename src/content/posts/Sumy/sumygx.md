@@ -19,9 +19,10 @@ pinned: false
 ## 这里是Sumy Music 更新日志：
 > 关于加入群聊：
 1. 欢迎大家进行技术交流和闲聊交友，点击[加入群聊Sumy Music](https://qm.qq.com/q/8VGaNo7Ngk)
-2. 禁止传播*色情/暴力/血腥*等相关的内容，发现即禁言/飞机票
-3. 禁止讨论**涉政**问题
-4. 禁止对任何群组人员<del>出言不逊</del>，有问题可以和平解决。
+2. 也可以加入[Github](https://github.com/qitinyu/SHMY/discussions/)/[Git Code](https://gitcode.com/YQAMM/Sumy-Music/discussions/2) 讨论群组
+3. 禁止传播*色情/暴力/血腥*等相关的内容，发现即禁言/飞机票
+4. 禁止讨论**涉政**问题
+5. 禁止对任何群组人员<del>出言不逊</del>，有问题可以和平解决。
 > 关于安装软件
 1. 目前版本：[Sumy Music V1.0.8.5](#one)
 2. 可访问全部[更新日志](https://yqamm.top/posts/sumy/sumygx/)
