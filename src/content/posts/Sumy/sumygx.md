@@ -38,6 +38,8 @@ pinned: false
 ---
 
 ## Sumy V2.0
+<details>
+<summary>点击查看</summary>
 ### Sumy V2.0.0.1
 > 适配沉浸光感
 - [✅] 底部栏沉浸
@@ -55,9 +57,12 @@ pinned: false
 - [✅] 设置页面功能卡片内部二级卡片化（题头+多个内容）#20011
 - [✅] 设置- 版块设置-新增首页子功能：听歌统计可控 #20013
 - [✅] 设置-webdav-api控制改为默认不开启，用户手动填写地址后保存/开启 #20015
+</details>
 ---
 
-# Sumy V1.0
+## Sumy V1.0
+<details>
+<summary>点击查看</summary>
 ## Sumy V1.0.8
 >V1.0.8.0-V1.0.8.6
 
@@ -549,7 +554,7 @@ struct PhotoViewPickerComponent {
 <details>
 <summary>点击查看</summary>
 
-### 重点修改内容:歌曲搜索不到/双击无法播放音乐/全局禁用emoji:
+> 重点修改内容:歌曲搜索不到/双击无法播放音乐/全局禁用emoji:
 
 1. 音源可以导入,但是搜索后只有小云一个源可以搜到几首歌曲,其他三个源依旧无法正常搜索，搜索不到音乐，或许是因为没有曲库，或者是因为导入的js文件只是导入，而没有对其做适配.
 2. 但是陋室界面音源的同时开启应该是用户手动设置,且切换其他版块时记忆用户操作,不能自动全部开启.
@@ -580,7 +585,7 @@ struct PhotoViewPickerComponent {
 <details>
 <summary>点击查看</summary>
 
-### 重点修改内容:
+> 重点修改内容:
 
 1. 软件全部命名改为"SHMY",全部LOGO替换为:logo.jpg
    **轩窗版块:**
@@ -606,7 +611,7 @@ struct PhotoViewPickerComponent {
 <details>
 <summary>点击查看</summary>
 
-### 在整体框架不变的情况下修改:
+> 在整体框架不变的情况下修改:
 
 1. 软件的两个版块修改:
 

@@ -1,0 +1,41 @@
+{
+  "sections": [
+    {
+      "label": "轩窗",
+      "href": "/",
+      "children": []
+    },
+    {
+      "label": "尺素",
+      "href": "/projects/",
+      "children": [
+        { "label": "铺陈", "href": "/projects/" },
+        { "label": "踏青", "href": "/diary/" },
+        { "label": "留芳", "href": "/files/" }
+      ]
+    },
+    {
+      "label": "墨竹",
+      "href": "/games/",
+      "children": [
+        { "label": "闲游", "href": "/games/" },
+        { "label": "忆影", "href": "/anime/" },
+        { "label": "清言", "href": "/les/" }
+      ]
+    },
+    {
+      "label": "拾遗",
+      "href": "/shiyi/",
+      "children": []
+    },
+    {
+      "label": "萍踪",
+      "href": "/links/",
+      "children": [
+        { "label": "幽竹", "href": "/links/" },
+        { "label": "石径", "href": "/friends/" },
+        { "label": "陋室", "href": "/about/" }
+      ]
+    }
+  ]
+}

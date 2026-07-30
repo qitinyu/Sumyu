@@ -1,0 +1,59 @@
+{
+  "site": {
+    "title": "SUMYU",
+    "subtitle": "轩窗听雨 · 岁月生香",
+    "description": "SUMYU 的个人博客 · 轩窗 / 尺素 / 墨竹 / 拾遗 / 萍踪",
+    "author": "SUMYU",
+    "url": "https://yqamm.top"
+  },
+  "avatar": "/assets/avatar.webp",
+  "icon": "/assets/logo.ico",
+  "logo": {
+    "image": "/assets/logo.webp",
+    "text": "SUMYU"
+  },
+  "userProfile": {
+    "name": "Sumyu",
+    "signature": "生命绚烂,别被黑暗压垮",
+    "avatar": "/assets/avatar.webp"
+  },
+  "randomQuotes": [
+    "雨是神的烟花，文字是岁月的回声。",
+    "愿你被这个世界温柔以待。",
+    "心若向阳，无谓悲伤。",
+    "所有的相遇都是久别重逢。",
+    "生活明朗，万物可爱。",
+    "听一场雨，读一卷书，等一个春。",
+    "于轩窗之下，写一寸光阴。"
+  ],
+  "heroSettings": {
+    "enableQuotes": true,
+    "typewriter": true,
+    "typewriterSpeed": 80
+  },
+  "heroImages": [
+    "/home/ht.webp"
+  ],
+  "randomImages": {
+    "enable": true,
+    "images": [
+      "/hero/suiji/kjys1.webp",
+      "/hero/suiji/kjys5.webp",
+      "/hero/suiji/kjys6.webp",
+      "/hero/suiji/kjys7.webp",
+      "/hero/suiji/kjys8.webp"
+    ]
+  },
+  "announcements": [
+    "欢迎来到 Sumyu 的个人博客！",
+    "祝贺2026-07-15-胡桃胡堂主生日快乐!!",
+    "祝福铠甲勇士刑天15周年，我们的童年回头看了我一眼",
+    "博客更新至v1.1.1,修复一系列问题"
+  ],
+  "siteStartDate": "2026-07-01",
+  "totalWordCount": "3.2万",
+  "pagination": {
+    "postsPageSize": 8,
+    "diaryPageSize": 8
+  }
+}

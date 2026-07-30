@@ -1,0 +1,19 @@
+{
+  "brand": {
+    "title": "SUMYU",
+    "subtitle": "轩窗听雨 · 岁月生香"
+  },
+  "copyright": {
+    "year": 2026,
+    "owner": "YuQi",
+    "siteUrl": "https://yqamm.top/",
+    "email": "484894496@qq.com"
+  },
+  "powered": {
+    "framework": "Astro",
+    "theme": "Sumyu",
+    "version": "1.1.1"
+  },
+  "icp": "",
+  "customLines": []
+}

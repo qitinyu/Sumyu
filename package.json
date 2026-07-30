@@ -6,9 +6,12 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
+    "cms:dev": "concurrently -n cms,sync,astro -c blue,yellow,green \"decap-server\" \"node scripts/sync-server.mjs D:\\YQ\\Sumyu\" \"astro dev\"",
     "build": "astro build",
     "preview": "astro preview --host",
-    "astro": "astro"
+    "cms": "decap-server",
+    "astro": "astro",
+    "sync:repo": "node scripts/sync-to-repo.mjs D:\\YQ\\Sumyu"
   },
   "keywords": [
     "astro",
@@ -27,5 +30,9 @@
     "astro": "^7.0.6",
     "sharp": "^0.35.3",
     "unist-util-visit": "^5.1.0"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.4",
+    "decap-server": "^3.10.0"
   }
 }

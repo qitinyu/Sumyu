@@ -243,12 +243,22 @@ iconify-icon { display: inline-block; vertical-align: -0.125em; }
   color: var(--sakura-primary-deep);
 }
 .prose-sakura pre {
-  margin: 1.2em 0; padding: 16px 20px; border-radius: var(--radius-md);
-  background: #fafafa; border: 1px solid var(--border-color); overflow-x: auto;
-  font-size: 14px; line-height: 1.6;
+  margin: 0; padding: 16px 20px;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  overflow-x: auto; font-size: 14px; line-height: 1.6;
+  background: transparent; border: none;
 }
-html.dark .prose-sakura pre { background: #1e1e1e; border-color: #2a2a2a; }
 .prose-sakura pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+
+/* Shiki 明暗双主题：暗色模式下覆盖为深色变量 */
+html.dark .astro-code,
+html.dark .astro-code span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
+}
 .prose-sakura img { margin: 1.2em auto; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); }
 .prose-sakura hr { margin: 2em 0; border: none; border-top: 1px dashed var(--border-color); }
 .prose-sakura table { width: 100%; margin: 0; border-collapse: collapse; font-size: 14px; }
@@ -272,112 +282,54 @@ html.dark .prose-sakura pre { background: #1e1e1e; border-color: #2a2a2a; }
   color: inherit;
 }
 
-/* ========== GitHub Alert 样式 ========== */
+/* ========== GitHub Alert 样式（随主题/暗色模式自适应） ========== */
 .github-alert {
+  --ga-bar: var(--sakura-primary);
+  --ga-icon: var(--sakura-primary);
+  --ga-text: var(--sakura-primary-deep);
+  --ga-bg: var(--sakura-primary-bg);
   margin: 1.2em 0;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
-  background: var(--bg-card);
+  border: 1px solid var(--sakura-primary-soft);
+  background: var(--ga-bg);
   overflow: hidden;
   position: relative;
 }
 .github-alert::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
+  top: 0; left: 0; right: 0; height: 3px;
+  background: var(--ga-bar);
 }
 .github-alert__header {
   padding: 10px 16px 6px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-  font-size: 14px;
-  background: transparent;
+  display: flex; align-items: center; gap: 8px;
+  font-weight: 600; font-size: 14px;
+  color: var(--ga-text);
 }
-.github-alert__icon {
-  font-size: 16px;
-}
+.github-alert__icon { font-size: 16px; color: var(--ga-icon); }
 .github-alert__content {
   padding: 6px 16px 14px;
-  font-size: 14px;
-  line-height: 1.7;
+  font-size: 14px; line-height: 1.7;
   color: var(--text-base);
 }
-.github-alert__content p {
-  margin: 0;
-}
+.github-alert__content p { margin: 0; }
 
-/* Note */
-.github-alert[data-type="note"]::before {
-  background: #3b82f6;
-}
-.github-alert[data-type="note"] .github-alert__icon {
-  color: #3b82f6;
-}
-.github-alert[data-type="note"] .github-alert__header {
-  color: #2563eb;
-}
+.github-alert[data-type="note"] { --ga-bar: #3b82f6; --ga-icon: #3b82f6; --ga-text: #2563eb; }
+.github-alert[data-type="tip"] { --ga-bar: #eab308; --ga-icon: #eab308; --ga-text: #a16207; }
+.github-alert[data-type="warning"] { --ga-bar: #f59e0b; --ga-icon: #f59e0b; --ga-text: #b45309; }
+.github-alert[data-type="important"] { --ga-bar: #ef4444; --ga-icon: #ef4444; --ga-text: #b91c1c; }
+.github-alert[data-type="caution"] { --ga-bar: #8b5cf6; --ga-icon: #8b5cf6; --ga-text: #7c3aed; }
 
-/* Tip */
-.github-alert[data-type="tip"]::before {
-  background: #eab308;
-}
-.github-alert[data-type="tip"] .github-alert__icon {
-  color: #eab308;
-}
-.github-alert[data-type="tip"] .github-alert__header {
-  color: #2563eb;
-}
-
-/* Warning */
-.github-alert[data-type="warning"]::before {
-  background: #f59e0b;
-}
-.github-alert[data-type="warning"] .github-alert__icon {
-  color: #f59e0b;
-}
-.github-alert[data-type="warning"] .github-alert__header {
-  color: #2563eb;
-}
-
-/* Important */
-.github-alert[data-type="important"]::before {
-  background: #ef4444;
-}
-.github-alert[data-type="important"] .github-alert__icon {
-  color: #ef4444;
-}
-.github-alert[data-type="important"] .github-alert__header {
-  color: #2563eb;
-}
-
-/* Caution */
-.github-alert[data-type="caution"]::before {
-  background: #8b5cf6;
-}
-.github-alert[data-type="caution"] .github-alert__icon {
-  color: #8b5cf6;
-}
-.github-alert[data-type="caution"] .github-alert__header {
-  color: #2563eb;
-}
-
-/* Dark mode */
 html.dark .github-alert {
+  --ga-bg: var(--bg-card);
   border-color: var(--border-color);
-  background: var(--bg-card);
 }
-html.dark .github-alert[data-type="note"] .github-alert__header,
-html.dark .github-alert[data-type="tip"] .github-alert__header,
-html.dark .github-alert[data-type="warning"] .github-alert__header,
-html.dark .github-alert[data-type="important"] .github-alert__header,
-html.dark .github-alert[data-type="caution"] .github-alert__header {
-  color: #60a5fa;
-}
+html.dark .github-alert[data-type="note"] { --ga-bar: #60a5fa; --ga-icon: #60a5fa; --ga-text: #93c5fd; }
+html.dark .github-alert[data-type="tip"] { --ga-bar: #facc15; --ga-icon: #facc15; --ga-text: #fde047; }
+html.dark .github-alert[data-type="warning"] { --ga-bar: #fbbf24; --ga-icon: #fbbf24; --ga-text: #fcd34d; }
+html.dark .github-alert[data-type="important"] { --ga-bar: #f87171; --ga-icon: #f87171; --ga-text: #fca5a5; }
+html.dark .github-alert[data-type="caution"] { --ga-bar: #a78bfa; --ga-icon: #a78bfa; --ga-text: #c4b5fd; }
 
 /* ========== 右下角悬浮图标 ========== */
 .floating-actions {
@@ -409,4 +361,85 @@ html.dark .github-alert[data-type="caution"] .github-alert__header {
 @media (max-width: 768px) {
   body { font-size: 14px; }
   .container { padding: 0 16px; }
+}
+
+/* ========== 代码块工具栏（折叠 / 复制） ========== */
+.code-block-wrapper {
+  position: relative;
+  margin: 1.2em 0;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: #ffffff;
+  overflow: hidden;
+  transition: border-color var(--transition-fast);
+}
+html.dark .code-block-wrapper {
+  border-color: var(--border-color);
+  background: var(--shiki-dark-bg);
+}
+.code-block-toolbar {
+  display: flex; align-items: center; justify-content: flex-end; gap: 6px;
+  padding: 6px 10px;
+  background: var(--bg-soft);
+  border-bottom: 1px solid var(--border-color);
+}
+.code-block-lang {
+  margin-right: auto;
+  font-size: 11px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.code-block-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 4px 8px; border-radius: var(--radius-sm);
+  font-size: 12px; color: var(--text-muted);
+  background: var(--bg-card); border: 1px solid var(--border-color);
+  transition: all var(--transition-fast); cursor: pointer;
+}
+.code-block-btn:hover {
+  color: var(--sakura-primary);
+  border-color: var(--sakura-primary-soft);
+  background: var(--sakura-primary-bg);
+}
+.code-block-btn iconify-icon { font-size: 14px; }
+.code-block-btn.is-copied {
+  color: #16a34a;
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+html.dark .code-block-btn.is-copied {
+  color: #4ade80;
+  border-color: #22c55e;
+  background: #14532d;
+}
+.code-block-wrapper.is-collapsed {
+  max-height: var(--cb-collapsed-height, 200px);
+}
+.code-block-wrapper.is-collapsed pre {
+  overflow: hidden;
+}
+.code-block-wrapper.is-collapsed::after {
+  content: '';
+  position: absolute; left: 0; right: 0; bottom: 0; height: 60px;
+  background: linear-gradient(transparent, #ffffff);
+  pointer-events: none;
+}
+html.dark .code-block-wrapper.is-collapsed::after {
+  background: linear-gradient(transparent, var(--shiki-dark-bg));
+}
+
+/* ========== 底部轻提示 ========== */
+.sumyu-toast {
+  position: fixed; left: 50%; bottom: 28px;
+  transform: translateX(-50%) translateY(12px);
+  z-index: 3000;
+  padding: 10px 18px; border-radius: var(--radius-full);
+  background: var(--bg-card); color: var(--text-base);
+  border: 1px solid var(--border-color); box-shadow: var(--shadow-md);
+  font-size: 13px; opacity: 0; visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+}
+.sumyu-toast.is-visible {
+  opacity: 1; visibility: visible;
+  transform: translateX(-50%) translateY(0);
 }

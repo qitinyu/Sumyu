@@ -1,0 +1,516 @@
+---
+const { slug } = Astro.params;
+const entries = [];
+---
+
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sumyu 后台管理</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.1/github-markdown-light.min.css" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; color: #333; }
+    .app { display: flex; height: 100vh; }
+    .sidebar { width: 280px; background: #fafbfc; border-right: 1px solid #e0e0e0; overflow-y: auto; flex-shrink: 0; user-select: none; }
+    .sidebar-header { padding: 16px 16px 12px; font-size: 16px; font-weight: 700; color: #7D98F5; border-bottom: 1px solid #ebedf0; }
+    .sidebar-section { margin-bottom: 4px; }
+    .sidebar-section-title { padding: 12px 16px 6px; font-size: 11px; color: #8c8c8c; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .folder { display: flex; align-items: center; gap: 8px; padding: 8px 16px; cursor: pointer; font-size: 13px; color: #444; transition: background 0.15s ease, color 0.15s ease; border-radius: 0 6px 6px 0; margin-right: 8px; }
+    .folder:hover { background: #eef2ff; color: #5a7af0; }
+    .folder-icon { font-size: 14px; width: 16px; text-align: center; transition: transform 0.2s ease; }
+    .file-list { display: none; padding-left: 12px; }
+    .file-list.expanded { display: block; }
+    .file-item { display: flex; align-items: center; gap: 8px; padding: 6px 16px 6px 32px; cursor: pointer; font-size: 13px; color: #555; transition: background 0.15s ease, color 0.15s ease, padding-left 0.15s ease; border-radius: 0 6px 6px 0; margin-right: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-item:hover { background: #eef2ff; color: #5a7af0; padding-left: 36px; }
+    .file-item.active { background: #7D98F5; color: #fff; }
+    .file-item.active:hover { background: #6a86e0; color: #fff; }
+    .file-item .file-icon { font-size: 12px; opacity: 0.7; flex-shrink: 0; }
+    .config-item { display: flex; align-items: center; gap: 8px; padding: 8px 16px; cursor: pointer; font-size: 13px; color: #444; transition: background 0.15s ease, color 0.15s ease, padding-left 0.15s ease; border-radius: 0 6px 6px 0; margin-right: 8px; }
+    .config-item:hover { background: #eef2ff; color: #5a7af0; padding-left: 20px; }
+    .config-item.active { background: #7D98F5; color: #fff; }
+    .config-item.active:hover { background: #6a86e0; color: #fff; }
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .toolbar { padding: 12px 24px; background: #fff; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; gap: 12px; }
+    .toolbar h1 { font-size: 18px; font-weight: 600; flex: 1; }
+    .toolbar button { padding: 6px 16px; border: 1px solid #ddd; border-radius: 6px; background: #fff; cursor: pointer; font-size: 13px; transition: all 0.15s ease; }
+    .toolbar button:hover { background: #f0f4ff; border-color: #7D98F5; color: #7D98F5; }
+    .toolbar button.primary { background: #7D98F5; color: #fff; border-color: #7D98F5; }
+    .toolbar button.primary:hover { background: #6a86e0; }
+    .editor-area { flex: 1; display: flex; overflow: hidden; }
+    .editor-pane { flex: 1; display: flex; flex-direction: column; }
+    .editor-pane textarea { flex: 1; border: none; padding: 20px; font-size: 14px; font-family: 'Consolas', 'Monaco', monospace; resize: none; outline: none; line-height: 1.6; }
+    .preview-pane { flex: 1; overflow-y: auto; padding: 20px; background: #fff; border-left: 1px solid #e0e0e0; }
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #999; }
+    .empty-state p { margin-top: 8px; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 24px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+    .toast.show { opacity: 1; }
+    .meta-bar { display: flex; gap: 12px; padding: 8px 20px; background: #fafafa; border-bottom: 1px solid #e0e0e0; flex-wrap: wrap; align-items: center; font-size: 12px; }
+    .meta-bar input, .meta-bar select { padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; }
+    .meta-bar label { color: #666; display: flex; align-items: center; gap: 4px; }
+    .tag-input { display: inline-flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+    .tag-input .tag { background: #e8edff; color: #7D98F5; padding: 2px 8px; border-radius: 4px; font-size: 11px; display: flex; align-items: center; gap: 4px; }
+    .tag-input .tag .del { cursor: pointer; font-weight: bold; }
+    .tag-input input { width: 80px; }
+    .status-bar { padding: 6px 24px; background: #fff; border-top: 1px solid #e0e0e0; font-size: 12px; color: #999; display: flex; justify-content: space-between; }
+  </style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <div class="sidebar" id="sidebar"></div>
+  <div class="main">
+    <div class="toolbar">
+      <h1 id="title">Sumyu 后台</h1>
+      <button onclick="newFile()">新建</button>
+      <button id="btnSave" class="primary" onclick="saveFile()">保存</button>
+      <button id="btnSync" onclick="syncToRepo()">同步到正式仓库</button>
+    </div>
+    <div class="meta-bar" id="metaBar"></div>
+    <div class="editor-area">
+      <div class="editor-pane">
+        <textarea id="editor" placeholder="选择左侧文件开始编辑..."></textarea>
+      </div>
+      <div class="preview-pane markdown-body" id="preview"></div>
+    </div>
+    <div class="status-bar">
+      <span id="statusLeft">就绪</span>
+      <span id="statusRight"></span>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ====== Config ======
+const API = 'http://localhost:8081/api/v1';
+
+// ====== Collections ======
+const COLLECTIONS = [
+  { name: 'posts', label: '博文', folder: 'src/content/posts' },
+  { name: 'diary', label: '日记', folder: 'src/content/diary' },
+  { name: 'config', label: '站点配置', files: [
+    { name: 'src/data/site.config.json', label: '站点基础配置' },
+    { name: 'src/data/nav.config.json', label: '顶部导航' },
+    { name: 'src/data/theme.config.json', label: '主题与设置面板' },
+    { name: 'src/data/social.config.json', label: '社交链接' },
+    { name: 'src/data/feature.config.json', label: '功能开关' },
+    { name: 'src/data/footer.config.json', label: '页脚配置' },
+    { name: 'src/data/links.config.json', label: '友情链接' },
+    { name: 'package.json', label: '版本号' },
+  ]},
+];
+
+// ====== State ======
+let currentFile = null;
+let currentCollection = null;
+let allEntries = {};
+let currentData = {};
+let currentBody = '';
+
+// ====== Frontmatter helpers ======
+function parseFrontmatter(raw) {
+  const result = {};
+  const m = raw.match(/^---\n([\s\S]*?)\n---/);
+  if (!m) return result;
+  for (const line of m[1].split('\n')) {
+    const idx = line.indexOf(':');
+    if (idx === -1) continue;
+    const key = line.slice(0, idx).trim();
+    let val = line.slice(idx + 1).trim();
+    if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1);
+    if (val.startsWith("'") && val.endsWith("'")) val = val.slice(1, -1);
+    if (val.startsWith('[') && val.endsWith(']')) {
+      val = val.slice(1, -1).split(',').map(v => v.trim()).filter(Boolean);
+    }
+    if (val === 'true') val = true;
+    if (val === 'false') val = false;
+    result[key] = val;
+  }
+  return result;
+}
+
+function extractBody(raw) {
+  const m = raw.match(/^---\n[\s\S]*?\n---\n*/);
+  if (!m) return raw;
+  return raw.slice(m[0].length);
+}
+
+function buildContent(data, body) {
+  let yaml = '---\n';
+  for (const [k, v] of Object.entries(data)) {
+    if (v === undefined || v === null || k === '_content') continue;
+    if (Array.isArray(v)) {
+      yaml += `${k}: [${v.join(', ')}]\n`;
+    } else if (typeof v === 'boolean') {
+      yaml += `${k}: ${v}\n`;
+    } else if (typeof v === 'string' && /[:#]/.test(v)) {
+      yaml += `${k}: "${v}"\n`;
+    } else {
+      yaml += `${k}: ${v}\n`;
+    }
+  }
+  return yaml + '---\n\n' + body;
+}
+
+// ====== API call ======
+async function api(action, params = {}) {
+  const res = await fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, params: { branch: 'master', ...params } }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || res.statusText);
+  }
+  return res.json();
+}
+
+// ====== Toast ======
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ====== Sidebar helpers ======
+function getSubfolder(path, baseFolder) {
+  const prefix = baseFolder + '/';
+  if (!path.startsWith(prefix)) return '';
+  const rest = path.slice(prefix.length);
+  const idx = rest.lastIndexOf('/');
+  return idx === -1 ? '' : rest.slice(0, idx);
+}
+
+function groupEntriesByFolder(entries, baseFolder) {
+  const groups = {};
+  for (const entry of entries) {
+    const p = entry.file?.path || entry.path;
+    const sub = getSubfolder(p, baseFolder) || '根目录';
+    if (!groups[sub]) groups[sub] = [];
+    groups[sub].push(entry);
+  }
+  return groups;
+}
+
+function createFileItem(entry, colName) {
+  const p = entry.file?.path || entry.path;
+  const fileName = p.split('/').pop();
+  const item = document.createElement('div');
+  item.className = 'file-item' + (currentFile === p && currentCollection === colName ? ' active' : '');
+  item.dataset.path = p;
+  item.innerHTML = '<span class="file-icon">📄</span><span class="file-name">' + (entry.label || entry.slug || fileName) + '</span>';
+  item.title = p;
+  item.onclick = () => loadFile(colName, p, false);
+  return item;
+}
+
+function createFolder(name, files, colName) {
+  const folder = document.createElement('div');
+  folder.className = 'sidebar-folder';
+
+  const header = document.createElement('div');
+  header.className = 'folder expanded';
+  header.innerHTML = '<span class="folder-icon">▼</span><span>📁</span><span class="folder-name">' + name + '</span><span style="margin-left:auto;font-size:11px;color:#999;">(' + files.length + ')</span>';
+  folder.appendChild(header);
+
+  const list = document.createElement('div');
+  list.className = 'file-list expanded';
+  for (const entry of files) {
+    list.appendChild(createFileItem(entry, colName));
+  }
+  folder.appendChild(list);
+
+  header.onclick = () => {
+    const expanded = header.classList.toggle('expanded');
+    list.classList.toggle('expanded', expanded);
+    header.querySelector('.folder-icon').textContent = expanded ? '▼' : '▶';
+  };
+
+  return folder;
+}
+
+function createConfigItem(colName, filePath, label) {
+  const item = document.createElement('div');
+  item.className = 'config-item' + (currentFile === filePath && currentCollection === colName ? ' active' : '');
+  item.dataset.path = filePath;
+  item.innerHTML = '<span>⚙️</span><span>' + label + '</span>';
+  item.title = filePath;
+  item.onclick = () => loadFile(colName, filePath, true);
+  return item;
+}
+
+// ====== Load sidebar ======
+async function loadSidebar() {
+  const sb = document.getElementById('sidebar');
+  sb.innerHTML = '<div class="sidebar-header">📋 Sumyu CMS</div>';
+
+  for (const col of COLLECTIONS) {
+    const section = document.createElement('div');
+    section.className = 'sidebar-section';
+
+    const title = document.createElement('div');
+    title.className = 'sidebar-section-title';
+    title.textContent = col.label;
+    section.appendChild(title);
+
+    if (col.files) {
+      for (const f of col.files) {
+        section.appendChild(createConfigItem(col.name, f.name, f.label));
+      }
+    } else {
+      try {
+        const entries = await api('entriesByFolder', { folder: col.folder, extension: 'md', depth: 5 });
+        allEntries[col.name] = entries;
+        const groups = groupEntriesByFolder(entries, col.folder);
+        const sortedFolders = Object.keys(groups).sort((a, b) => {
+          if (a === '根目录') return -1;
+          if (b === '根目录') return 1;
+          return a.localeCompare(b);
+        });
+        for (const folderName of sortedFolders) {
+          section.appendChild(createFolder(folderName, groups[folderName], col.name));
+        }
+      } catch(e) {
+        const err = document.createElement('div');
+        err.className = 'file-item';
+        err.style.color = '#999';
+        err.textContent = '加载失败: ' + e.message;
+        section.appendChild(err);
+      }
+    }
+
+    sb.appendChild(section);
+  }
+}
+
+// ====== Load file ======
+async function loadFile(colName, filePath, isConfig) {
+  currentCollection = colName;
+  currentFile = filePath;
+  document.getElementById('title').textContent = filePath.split('/').pop() || filePath;
+
+  // highlight
+  document.querySelectorAll('.sidebar .file-item, .sidebar .config-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.path === filePath);
+  });
+
+  try {
+    document.getElementById('statusLeft').textContent = '加载中...';
+    const entry = await api('getEntry', { path: filePath });
+    const raw = entry.data || '';
+    currentData = parseFrontmatter(raw);
+    currentBody = extractBody(raw);
+    document.getElementById('editor').value = raw;
+
+    if (isConfig) {
+      document.getElementById('metaBar').innerHTML = '';
+    } else {
+      renderMeta(currentData);
+    }
+    renderPreview();
+    document.getElementById('statusLeft').textContent = '已加载';
+    document.getElementById('statusRight').textContent = filePath;
+  } catch(e) {
+    toast('加载失败: ' + e.message);
+  }
+}
+
+// ====== Render meta bar ======
+function rebuildEditor() {
+  document.getElementById('editor').value = buildContent(currentData, currentBody);
+  renderPreview();
+}
+
+function renderMeta(data) {
+  const meta = document.getElementById('metaBar');
+  meta.innerHTML = '';
+
+  const fields = [
+    { label: '标题', key: 'title', type: 'text' },
+    { label: '日期', key: 'pubDate', type: 'date' },
+    { label: '描述', key: 'description', type: 'text' },
+    { label: '作者', key: 'author', type: 'text' },
+    { label: '标签', key: 'tags', type: 'tags' },
+    { label: '置顶', key: 'pinned', type: 'checkbox' },
+    { label: '加密', key: 'encrypted', type: 'checkbox' },
+    { label: '密码', key: 'password', type: 'text' },
+  ];
+
+  for (const f of fields) {
+    const label = document.createElement('label');
+    label.textContent = f.label;
+
+    if (f.type === 'checkbox') {
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.checked = data[f.key] || false;
+      input.dataset.key = f.key;
+      input.onchange = () => { data[f.key] = input.checked; rebuildEditor(); };
+      label.appendChild(input);
+    } else if (f.type === 'tags') {
+      const wrap = document.createElement('span');
+      wrap.className = 'tag-input';
+      const tags = data[f.key] || [];
+      function renderTags() {
+        wrap.innerHTML = '';
+        tags.forEach((t, i) => {
+          const tag = document.createElement('span');
+          tag.className = 'tag';
+          tag.innerHTML = t + '<span class="del" onclick="removeTag(' + i + ')">×</span>';
+          wrap.appendChild(tag);
+        });
+        const input = document.createElement('input');
+        input.placeholder = '添加';
+        input.onkeydown = (e) => {
+          if (e.key === 'Enter' && input.value.trim()) {
+            tags.push(input.value.trim());
+            input.value = '';
+            renderTags();
+            data[f.key] = tags;
+            rebuildEditor();
+          }
+        };
+        wrap.appendChild(input);
+      }
+      renderTags();
+      label.appendChild(wrap);
+      window.removeTag = (i) => { tags.splice(i, 1); renderTags(); data[f.key] = tags; rebuildEditor(); };
+    } else {
+      const input = document.createElement('input');
+      input.type = f.type;
+      input.value = data[f.key] || '';
+      input.dataset.key = f.key;
+      input.oninput = () => { data[f.key] = input.value; rebuildEditor(); };
+      label.appendChild(input);
+    }
+    meta.appendChild(label);
+  }
+}
+
+// ====== Render preview ======
+function renderPreview() {
+  const text = document.getElementById('editor').value;
+  const preview = document.getElementById('preview');
+  // Simple markdown to HTML conversion
+  let html = text
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code>$1</code>')
+    .replace(/!\[(.+?)\]\((.+?)\)/g, '<img src="$2" alt="$1" style="max-width:100%">')
+    .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>')
+    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/^(.+)$/gm, (m) => {
+      if (m.startsWith('<')) return m;
+      return m;
+    });
+  preview.innerHTML = '<p>' + html + '</p>';
+}
+
+// ====== Save ======
+async function saveFile() {
+  if (!currentFile) { toast('请先选择文件'); return; }
+  const text = document.getElementById('editor').value;
+  const slug = currentFile.split('/').pop().replace(/\.md$/, '').replace(/\.json$/, '');
+  console.log('[save] path:', currentFile, 'slug:', slug);
+  try {
+    document.getElementById('btnSave').textContent = '保存中...';
+    document.getElementById('btnSave').disabled = true;
+    const payload = {
+      dataFiles: [{ path: currentFile, raw: text, slug }],
+      assets: [],
+      options: { commitMessage: '更新: ' + currentFile.split('/').pop(), collectionName: currentCollection || 'config', useWorkflow: false, status: 'published' },
+    };
+    console.log('[save] payload:', JSON.stringify(payload, null, 2));
+    const res = await api('persistEntry', payload);
+    console.log('[save] response:', res);
+    toast('已保存');
+    document.getElementById('statusLeft').textContent = '已保存: ' + (res?.message || 'ok');
+    document.getElementById('statusRight').textContent = currentFile;
+  } catch(e) {
+    console.error('[save] error:', e);
+    toast('保存失败: ' + e.message);
+  } finally {
+    document.getElementById('btnSave').textContent = '保存';
+    document.getElementById('btnSave').disabled = false;
+  }
+}
+
+// ====== New file ======
+async function newFile() {
+  const colName = prompt('集合 (posts/diary):', 'posts');
+  if (!colName) return;
+  const fileName = prompt('文件名 (不含 .md):', 'new-post');
+  if (!fileName) return;
+  const subdir = prompt('子目录 (如 Blog/, 留空则直接放在集合根目录):', '');
+  const path = 'src/content/' + colName + (subdir ? '/' + subdir.replace(/\/?$/, '/') : '') + fileName + '.md';
+  currentFile = path;
+  currentCollection = colName;
+  currentData = { title: fileName, pubDate: new Date().toISOString().slice(0,10) };
+  currentBody = '';
+  const raw = buildContent(currentData, currentBody);
+  document.getElementById('editor').value = raw;
+  renderMeta(currentData);
+  renderPreview();
+  document.getElementById('title').textContent = fileName + '.md';
+  document.getElementById('statusLeft').textContent = '新文件';
+  document.getElementById('statusRight').textContent = path;
+  toast('新建 ' + path);
+}
+
+// ====== Sync to repo ======
+async function syncToRepo() {
+  const btn = document.getElementById('btnSync');
+  try {
+    btn.textContent = '同步中...';
+    btn.disabled = true;
+    document.getElementById('statusLeft').textContent = '正在同步到 D:\\YQ\\Sumyu...';
+    const res = await fetch('http://localhost:8082/sync', { method: 'POST' });
+    const data = await res.json();
+    console.log('[sync] response:', data);
+    if (data.success) {
+      toast('已同步到正式仓库');
+      document.getElementById('statusLeft').textContent = '已同步到正式仓库';
+    } else {
+      throw new Error(data.error || '同步失败');
+    }
+  } catch (e) {
+    console.error('[sync] error:', e);
+    toast('同步失败: ' + e.message);
+    document.getElementById('statusLeft').textContent = '同步失败';
+  } finally {
+    btn.textContent = '同步到正式仓库';
+    btn.disabled = false;
+  }
+}
+
+// ====== Auto preview on edit ======
+document.getElementById('editor').addEventListener('input', () => {
+  const raw = document.getElementById('editor').value;
+  currentBody = extractBody(raw);
+  renderPreview();
+});
+
+// 暴露给 HTML 内联事件处理器
+window.saveFile = saveFile;
+window.newFile = newFile;
+window.syncToRepo = syncToRepo;
+
+// ====== Init ======
+loadSidebar().catch(e => {
+  document.getElementById('sidebar').innerHTML = '<div style="padding:20px;color:red">连接失败: ' + e.message + '<br><br>确认 decap-server 已在端口 8081 运行</div>';
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,300 @@
+backend:
+  name: proxy
+  proxy_url: http://localhost:8081/api/v1
+  branch: master
+
+media_folder: public/img/uploads
+public_folder: /img/uploads
+
+site_url: https://yqamm.top
+display_url: https://yqamm.top
+
+collections:
+  - name: posts
+    label: 博文
+    label_singular: 文章
+    folder: src/content/posts
+    create: true
+    delete: true
+    format: frontmatter
+    preview_path: blog/{{slug}}
+    sortable_fields: [pubDate, title, pinned]
+    fields:
+      - { label: 标题, name: title, widget: string }
+      - { label: 发布日期, name: pubDate, widget: datetime, format: YYYY-MM-DD, date_format: YYYY-MM-DD, time_format: false }
+      - { label: 描述, name: description, widget: string, required: false }
+      - { label: 封面图, name: image, widget: string, required: false }
+      - { label: 标签, name: tags, widget: list, required: false, field: { label: 标签, name: tag, widget: string } }
+      - { label: 作者, name: author, widget: string, default: "Sumyu", required: false }
+      - { label: 置顶, name: pinned, widget: boolean, default: false, required: false }
+      - { label: 加密, name: encrypted, widget: boolean, default: false, required: false }
+      - { label: 密码, name: password, widget: string, required: false }
+      - { label: 草稿, name: draft, widget: boolean, default: false, required: false }
+      - { label: 正文, name: body, widget: markdown }
+
+  - name: diary
+    label: 日记
+    label_singular: 日记
+    folder: src/content/diary
+    create: true
+    delete: true
+    format: frontmatter
+    preview_path: diary/{{slug}}
+    fields:
+      - { label: 标题, name: title, widget: string }
+      - { label: 日期, name: pubDate, widget: datetime, format: YYYY-MM-DD, date_format: YYYY-MM-DD, time_format: false }
+      - { label: 描述, name: description, widget: string, required: false }
+      - { label: 标签, name: tags, widget: list, required: false, field: { label: 标签, name: tag, widget: string } }
+      - { label: 正文, name: body, widget: markdown }
+
+  - name: settings
+    label: 站点配置
+    files:
+      - label: 站点基础配置
+        name: site
+        file: src/data/site.config.json
+        format: json
+        fields:
+          - label: 站点身份
+            name: site
+            widget: object
+            fields:
+              - { label: 标题, name: title, widget: string }
+              - { label: 副标题, name: subtitle, widget: string }
+              - { label: 描述, name: description, widget: string }
+              - { label: 作者, name: author, widget: string }
+              - { label: 站点地址, name: url, widget: string }
+          - { label: 头像, name: avatar, widget: string }
+          - { label: 图标, name: icon, widget: string }
+          - label: Logo
+            name: logo
+            widget: object
+            fields:
+              - { label: 图片, name: image, widget: string, required: false }
+              - { label: 文字, name: text, widget: string, required: false }
+          - label: 用户信息
+            name: userProfile
+            widget: object
+            fields:
+              - { label: 昵称, name: name, widget: string }
+              - { label: 签名, name: signature, widget: string }
+              - { label: 头像, name: avatar, widget: string }
+          - label: 随机语录
+            name: randomQuotes
+            widget: list
+            field: { label: 语录, name: quote, widget: string }
+          - label: Hero 设置
+            name: heroSettings
+            widget: object
+            fields:
+              - { label: 启用语录, name: enableQuotes, widget: boolean }
+              - { label: 打字机效果, name: typewriter, widget: boolean }
+              - { label: 打字速度, name: typewriterSpeed, widget: number }
+          - label: Hero 背景图
+            name: heroImages
+            widget: list
+            field: { label: 图片路径, name: image, widget: string }
+          - label: 随机图片轮播
+            name: randomImages
+            widget: object
+            fields:
+              - { label: 启用, name: enable, widget: boolean }
+              - label: 图片列表
+                name: images
+                widget: list
+                field: { label: 图片路径, name: image, widget: string }
+          - label: 站点公告
+            name: announcements
+            widget: list
+            field: { label: 公告内容, name: text, widget: string }
+          - { label: 建站日期, name: siteStartDate, widget: datetime, format: YYYY-MM-DD, date_format: YYYY-MM-DD, time_format: false }
+          - { label: 总字数, name: totalWordCount, widget: string }
+          - label: 分页
+            name: pagination
+            widget: object
+            fields:
+              - { label: 博文每页数量, name: postsPageSize, widget: number }
+              - { label: 日记每页数量, name: diaryPageSize, widget: number }
+
+      - label: 顶部导航
+        name: nav
+        file: src/data/nav.config.json
+        format: json
+        fields:
+          - label: 导航栏目
+            name: sections
+            widget: list
+            fields:
+              - { label: 名称, name: label, widget: string }
+              - { label: 链接, name: href, widget: string }
+              - label: 子菜单
+                name: children
+                widget: list
+                fields:
+                  - { label: 名称, name: label, widget: string }
+                  - { label: 链接, name: href, widget: string }
+
+      - label: 主题与设置面板
+        name: theme
+        file: src/data/theme.config.json
+        format: json
+        fields:
+          - label: 设置面板
+            name: settingsPanel
+            widget: object
+            fields:
+              - { label: 启用, name: enabled, widget: boolean }
+              - label: 选项
+                name: options
+                widget: object
+                fields:
+                  - { label: Live2D, name: live2d, widget: boolean }
+                  - { label: 樱花特效, name: sakura, widget: boolean }
+                  - { label: 主题色, name: themeColor, widget: boolean }
+                  - { label: 暗夜模式, name: darkMode, widget: boolean }
+                  - { label: 音乐播放器, name: music, widget: boolean }
+                  - { label: 文章布局, name: postLayout, widget: boolean }
+          - label: 主题色板
+            name: themeColors
+            widget: list
+            fields:
+              - { label: ID, name: id, widget: string }
+              - { label: 名称, name: name, widget: string }
+              - { label: 主色, name: primary, widget: string }
+              - { label: 浅色, name: soft, widget: string }
+              - { label: 深色, name: deep, widget: string }
+              - { label: 背景色, name: bg, widget: string }
+
+      - label: 社交链接
+        name: social
+        file: src/data/social.config.json
+        format: json
+        fields:
+          - label: 社交链接
+            name: links
+            widget: list
+            fields:
+              - { label: 名称, name: name, widget: string }
+              - { label: 链接, name: url, widget: string }
+              - { label: 图标类名, name: icon, widget: string }
+
+      - label: 功能开关
+        name: features
+        file: src/data/feature.config.json
+        format: json
+        fields:
+          - label: Live2D
+            name: live2d
+            widget: object
+            fields:
+              - { label: 启用, name: enabled, widget: boolean }
+              - { label: 模型路径, name: modelPath, widget: string }
+              - { label: 模型名称, name: modelName, widget: string }
+              - { label: bottom, name: bottom, widget: number }
+              - { label: left, name: left, widget: number }
+              - { label: right, name: right, widget: number }
+              - { label: width, name: width, widget: number }
+              - { label: height, name: height, widget: number }
+              - { label: scale, name: scale, widget: number }
+              - { label: 移动端隐藏, name: mobileOff, widget: boolean }
+              - label: 模型列表
+                name: modelList
+                widget: list
+                fields:
+                  - { label: 名称, name: name, widget: string }
+                  - { label: 路径, name: path, widget: string }
+          - label: 音乐播放器
+            name: music
+            widget: object
+            fields:
+              - { label: 启用, name: enabled, widget: boolean }
+              - { label: API, name: api, widget: string }
+              - { label: 服务, name: server, widget: string }
+              - { label: 类型, name: type, widget: string }
+              - { label: 歌单ID, name: id, widget: string }
+          - label: 评论系统
+            name: comment
+            widget: object
+            fields:
+              - { label: 启用, name: enable, widget: boolean }
+              - { label: 系统, name: system, widget: select, options: [yuamli, twikoo, giscus] }
+              - label: yuamli
+                name: yuamli
+                widget: object
+                fields:
+                  - { label: URL, name: url, widget: string }
+              - label: Twikoo
+                name: twikoo
+                widget: object
+                fields:
+                  - { label: envId, name: envId, widget: string }
+                  - { label: 语言, name: lang, widget: string }
+                  - { label: 版本, name: version, widget: string }
+                  - { label: CDN, name: cdn, widget: string }
+                  - { label: 备用CDN, name: fallbackCdn, widget: string }
+              - label: Giscus
+                name: giscus
+                widget: object
+                fields:
+                  - { label: 仓库, name: repo, widget: string }
+                  - { label: 仓库ID, name: repoId, widget: string }
+                  - { label: 分类, name: category, widget: string }
+                  - { label: 分类ID, name: categoryId, widget: string }
+                  - { label: mapping, name: mapping, widget: string }
+                  - { label: strict, name: strict, widget: string }
+                  - { label: reactionsEnabled, name: reactionsEnabled, widget: string }
+                  - { label: emitMetadata, name: emitMetadata, widget: string }
+                  - { label: inputPosition, name: inputPosition, widget: string }
+                  - { label: theme, name: theme, widget: string }
+                  - { label: 语言, name: lang, widget: string }
+                  - { label: loading, name: loading, widget: string }
+
+      - label: 页脚配置
+        name: footer
+        file: src/data/footer.config.json
+        format: json
+        fields:
+          - label: 品牌
+            name: brand
+            widget: object
+            fields:
+              - { label: 标题, name: title, widget: string }
+              - { label: 副标题, name: subtitle, widget: string }
+          - label: 版权
+            name: copyright
+            widget: object
+            fields:
+              - { label: 年份, name: year, widget: number }
+              - { label: 所有者, name: owner, widget: string }
+              - { label: 站点地址, name: siteUrl, widget: string }
+              - { label: 邮箱, name: email, widget: string }
+          - label: 技术栈
+            name: powered
+            widget: object
+            fields:
+              - { label: 框架, name: framework, widget: string }
+              - { label: 主题, name: theme, widget: string }
+              - { label: 版本, name: version, widget: string }
+          - { label: 备案号, name: icp, widget: string, required: false }
+          - label: 自定义行
+            name: customLines
+            widget: list
+            field: { label: 内容, name: line, widget: string }
+
+      - label: 友情链接
+        name: links
+        file: src/data/links.config.json
+        format: json
+        fields:
+          - label: 友链列表
+            name: friendLinks
+            widget: list
+            fields:
+              - { label: 名称, name: name, widget: string }
+              - { label: 链接, name: url, widget: string }
+              - { label: 头像, name: avatar, widget: string }
+              - { label: 描述, name: desc, widget: string }
+              - label: 标签
+                name: tags
+                widget: list
+                field: { label: 标签, name: tag, widget: string }

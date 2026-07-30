@@ -233,10 +233,12 @@ const lastEditDate = latestPost
     grid-template-columns: 1fr 1fr 1fr;
     gap: 24px;
     align-items: start;
+    min-width: 0;
   }
   .notice-board__row-top--no-images {
     grid-template-columns: 1fr 1fr;
   }
+  .notice-board__section { min-width: 0; }
 
   /* 下方站点统计横向排列 */
   .notice-board__row-bottom {
@@ -272,11 +274,16 @@ const lastEditDate = latestPost
   }
   .image-carousel__frame {
     width: 100%;
-    height: 236px;
+    aspect-ratio: 16 / 9;
+    max-height: 260px;
     border-radius: var(--radius-sm);
     overflow: hidden;
     box-shadow: var(--shadow-sm);
     transition: transform var(--transition-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-soft);
   }
   .image-carousel__frame:hover { transform: scale(1.02); }
   .image-carousel__frame img {

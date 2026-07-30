@@ -1,0 +1,54 @@
+{
+  "live2d": {
+    "enabled": true,
+    "modelPath": "https://cdn.jsdelivr.net/gh/qitinyu/yqlive2@v1.0.2/models/cmtt/",
+    "modelName": "cmtt",
+    "bottom": 0,
+    "left": 10,
+    "right": 10,
+    "width": 400,
+    "height": 620,
+    "scale": 0.15,
+    "mobileOff": false,
+    "modelList": [
+      { "name": "cmtt", "path": "https://cdn.jsdelivr.net/gh/qitinyu/yqlive2@v1.0.2/models/cmtt/cmtt.model3.json" },
+      { "name": "jk", "path": "https://cdn.jsdelivr.net/gh/qitinyu/yqlive2@v1.0.2/models/jk/jk.model3.json" },
+      { "name": "girl", "path": "https://cdn.jsdelivr.net/gh/qitinyu/yqlive2@v1.0.2/models/girl/girl.model3.json" }
+    ]
+  },
+  "music": {
+    "enabled": true,
+    "api": "https://api.qijieya.cn/meting/",
+    "server": "netease",
+    "type": "playlist",
+    "id": "17863308200"
+  },
+  "comment": {
+    "enable": true,
+    "system": "yuamli",
+    "yuamli": {
+      "url": "https://yuamli.yqamm.top/"
+    },
+    "twikoo": {
+      "envId": "https://netlify-nt.netlify.app/.netlify/functions/twikoo",
+      "lang": "zh-CN",
+      "version": "1.7.10",
+      "cdn": "https://s4.zstatic.net/npm/twikoo@{version}/dist/twikoo.min.js",
+      "fallbackCdn": "https://registry.npmmirror.com/twikoo@{version}/files/dist/twikoo.min.js"
+    },
+    "giscus": {
+      "repo": "qitinyu/yuami-giscus",
+      "repoId": "R_kgDOSmXsaA",
+      "category": "Announcements",
+      "categoryId": "DIC_kwDOSmXsaM4C9uxi",
+      "mapping": "pathname",
+      "strict": "1",
+      "reactionsEnabled": "1",
+      "emitMetadata": "0",
+      "inputPosition": "top",
+      "theme": "noborder_light",
+      "lang": "zh-CN",
+      "loading": "lazy"
+    }
+  }
+}

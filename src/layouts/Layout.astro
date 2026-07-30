@@ -109,6 +109,135 @@ const htmlClass = [isHome ? 'is-home has-home-layout' : '', ''].join(' ');
     let lastScrollY = 0;
     let ticking = false;
 
+    // ===== 主题持久化（View Transitions 后再次确认） =====
+    function applyStoredTheme() {
+      try {
+        const stored = localStorage.getItem('sakura-theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const isDark = stored === 'dark' || (!stored && prefersDark);
+        document.documentElement.classList.toggle('dark', isDark);
+      } catch (_) {}
+    }
+    applyStoredTheme();
+
+    // ===== 代码块通用工具（复制/折叠） =====
+    function showToast(message: string) {
+      let toast = document.getElementById('sumyu-toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'sumyu-toast';
+        toast.className = 'sumyu-toast';
+        document.body.appendChild(toast);
+      }
+      toast.textContent = message;
+      toast.classList.add('is-visible');
+      const t = toast as HTMLElement & { _toastTimer?: number };
+      if (t._toastTimer) window.clearTimeout(t._toastTimer);
+      t._toastTimer = window.setTimeout(() => {
+        toast?.classList.remove('is-visible');
+      }, 2200);
+    }
+
+    async function copyText(text: string) {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+      } finally {
+        document.body.removeChild(ta);
+      }
+    }
+
+    function detectCodeLang(pre: HTMLElement): string {
+      const fromData = pre.getAttribute('data-language');
+      if (fromData) return fromData;
+      const code = pre.querySelector('code');
+      if (code) {
+        for (const cls of code.classList) {
+          const m = cls.match(/^language-(.+)$/);
+          if (m) return m[1];
+        }
+      }
+      for (const cls of pre.classList) {
+        const m = cls.match(/^language-(.+)$/);
+        if (m) return m[1];
+      }
+      return '';
+    }
+
+    function processCodeBlocks() {
+      document.querySelectorAll<HTMLElement>('.prose-sakura pre').forEach((pre) => {
+        if (pre.closest('.code-block-wrapper')) return;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'code-block-wrapper';
+        pre.parentNode?.insertBefore(wrapper, pre);
+        wrapper.appendChild(pre);
+
+        const toolbar = document.createElement('div');
+        toolbar.className = 'code-block-toolbar';
+
+        const lang = detectCodeLang(pre);
+        if (lang) {
+          const langEl = document.createElement('span');
+          langEl.className = 'code-block-lang';
+          langEl.textContent = lang;
+          toolbar.appendChild(langEl);
+        }
+
+        if (pre.scrollHeight > 280) {
+          const foldBtn = document.createElement('button');
+          foldBtn.type = 'button';
+          foldBtn.className = 'code-block-btn code-block-fold-btn';
+          foldBtn.innerHTML = '<iconify-icon icon="ri:collapse-diagonal-line"></iconify-icon><span>折叠</span>';
+          foldBtn.addEventListener('click', () => {
+            const collapsed = wrapper.classList.toggle('is-collapsed');
+            if (collapsed) {
+              const half = Math.max(120, Math.floor(pre.scrollHeight / 2));
+              wrapper.style.setProperty('--cb-collapsed-height', `${half}px`);
+              foldBtn.innerHTML = '<iconify-icon icon="ri:expand-diagonal-line"></iconify-icon><span>展开</span>';
+            } else {
+              wrapper.style.removeProperty('--cb-collapsed-height');
+              foldBtn.innerHTML = '<iconify-icon icon="ri:collapse-diagonal-line"></iconify-icon><span>折叠</span>';
+            }
+          });
+          toolbar.appendChild(foldBtn);
+        }
+
+        const copyBtn = document.createElement('button');
+        copyBtn.type = 'button';
+        copyBtn.className = 'code-block-btn code-block-copy-btn';
+        copyBtn.innerHTML = '<iconify-icon icon="ri:file-copy-line"></iconify-icon><span>复制</span>';
+        copyBtn.addEventListener('click', async () => {
+          const text = pre.textContent || '';
+          try {
+            await copyText(text);
+            showToast('已复制到剪贴板');
+            copyBtn.classList.add('is-copied');
+            copyBtn.innerHTML = '<iconify-icon icon="ri:check-line"></iconify-icon><span>已复制</span>';
+            window.setTimeout(() => {
+              copyBtn.classList.remove('is-copied');
+              copyBtn.innerHTML = '<iconify-icon icon="ri:file-copy-line"></iconify-icon><span>复制</span>';
+            }, 1800);
+          } catch (_) {
+            showToast('复制失败，请手动复制');
+          }
+        });
+        toolbar.appendChild(copyBtn);
+
+        wrapper.insertBefore(toolbar, pre);
+      });
+    }
+
     // ===== DOM 引用 (每次页面加载时更新) =====
     let $sidebarToggle: HTMLElement | null = null;
     let $sidebar: HTMLElement | null = null;
@@ -228,6 +357,11 @@ const htmlClass = [isHome ? 'is-home has-home-layout' : '', ''].join(' ');
 
     // ===== 页面级初始化 (首次加载 + 每次 View Transition 后调用) =====
     function initPage() {
+      // 每次页面切换后重新应用持久化主题
+      applyStoredTheme();
+      // 为文章内的代码块添加工具栏
+      processCodeBlocks();
+
       // 查询 DOM
       $sidebarToggle = document.getElementById('sidebar-toggle');
       $sidebar = document.getElementById('sidebar');
