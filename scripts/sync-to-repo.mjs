@@ -17,6 +17,7 @@ const SYNC_ITEMS = [
   'scripts/sync-to-repo.mjs',
   'scripts/sync-server.mjs',
   'admin-guide.md',
+  'pnpm-lock.yaml',
 ];
 
 function log(...args) {
