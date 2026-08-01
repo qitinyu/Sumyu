@@ -1,7 +1,7 @@
 {
   "live2d": {
     "enabled": true,
-    "modelPath": "https://cdn.jsdelivr.net/gh/qitinyu/yqlive2@v1.0.2/models/cmtt/",
+    "modelPath": "https://cdn.jsdmirror.com/gh/qitinyu/yqlive2@v1.0.2/models/cmtt/cmtt.model3.json",
     "modelName": "cmtt",
     "bottom": 0,
     "left": 10,
@@ -11,9 +11,10 @@
     "scale": 0.15,
     "mobileOff": false,
     "modelList": [
-      { "name": "cmtt", "path": "https://cdn.jsdelivr.net/gh/qitinyu/yqlive2@v1.0.2/models/cmtt/cmtt.model3.json" },
-      { "name": "jk", "path": "https://cdn.jsdelivr.net/gh/qitinyu/yqlive2@v1.0.2/models/jk/jk.model3.json" },
-      { "name": "girl", "path": "https://cdn.jsdelivr.net/gh/qitinyu/yqlive2@v1.0.2/models/girl/girl.model3.json" }
+      { "name": "wwa", "path": "https://cdn.jsdmirror.com/gh/qitinyu/yqlive2@v1.0.2/models/wwa/wwa.model3.json" },
+      { "name": "cmtt", "path": "https://cdn.jsdmirror.com/gh/qitinyu/yqlive2@v1.0.2/models/cmtt/cmtt.model3.json" },
+      { "name": "jk", "path": "https://cdn.jsdmirror.com/gh/qitinyu/yqlive2@v1.0.2/models/jk/jk.model3.json" },
+      { "name": "girl", "path": "https://cdn.jsdmirror.com/gh/qitinyu/yqlive2@v1.0.2/models/girl/girl.model3.json" }
     ]
   },
   "music": {
