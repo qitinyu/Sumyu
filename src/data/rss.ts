@@ -17,7 +17,7 @@ export const siteInfo: SiteInfoRow[] = [
   { label: '站点名称', value: 'Sumyu' },
   { label: '站点描述', value: '轩窗听雨 · 岁月生香' },
   { label: '框架', value: 'Astro 7 + TypeScript + MDX' },
-  { label: '主题', value: 'Sumyu (基于 Sakura 仿制)' },
+  { label: '主题', value: 'Sumyu ' },
   { label: '主色调', value: '樱花粉 #DF9193 (可切换 5 套)' },
   { label: '字体', value: 'LXGW WenKai Screen' },
   { label: '图标', value: 'Iconify + Font Awesome' },
@@ -108,9 +108,9 @@ export const rssFriends: RssFriendItem[] = [
 },
 {
   name: 'yuyu的博客',
-  url: 'https://yuyu09.com/',
-  feed: '',
-  avatar: 'https://i.postimg.cc/0Q9Z55Qy/yuyu-webp.jpg'
+  url: 'https://www.catovo.xyz/',
+  feed: 'https://www.catovo.xyz/rss.xml',
+  avatar: 'https://www.catovo.xyz/icon.webp'
 },
 {
   name: 'AFOP',
@@ -182,13 +182,13 @@ export const rssFriends: RssFriendItem[] = [
 {
   name: "UpXuu's Blog",
   url: 'https://upxuu.com/',
-  feed: '',
+  feed: 'https://upxuu.com/rss.xml',
   avatar: 'https://upxuu.com/images/20260214145619.jpg'
 },
 {
   name: '𝔖𝔥𝔞𝔴𝔜𝔬𝔲𝔫𝔤',
   url: 'https://yoviz.dpdns.org/',
-  feed: '',
+  feed: 'https://yoviz.dpdns.org/rss.xml',
   avatar: 'https://yoviz.dpdns.org/_astro/avatar.JHDUpy2g_1YHEgb.webp'
 }
 
