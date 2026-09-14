@@ -97,6 +97,8 @@ MIT License
 >由于个人技术有限以及官方限制要求，暂不考虑上架应用市场，随缘邀测，有能力的可自行<a id="one">侧载体验</a>
 2. 完整更新日志：
 - [GITHUB Wiki](https://github.com/qitinyu/Sumy-Music/wiki/)
+3. [侧载教程](#one)
+- [点击查看](https://yqamm.top/posts/harmony/260713hokit/)
 
 ## 安卓/PC同类型软件（非本人开发）：
 - [LX Music](https://yqamm.top/posts/gonju/260406lx/)
