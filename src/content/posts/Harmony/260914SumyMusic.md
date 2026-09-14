@@ -3,6 +3,7 @@ title: SumyMusic-鸿蒙原生多源聚合播放器
 pubDate: 2026-09-14
 description: 一款鸿蒙原生音乐播放器，支持多音源聚合搜索、自建API、WebDAV云盘播放、数据同步等功能
 author: YuQi
+tags: [Harmony]
 ---
 
 ## Sumy Music（目前支持鸿蒙手机端API24及以上设备）
