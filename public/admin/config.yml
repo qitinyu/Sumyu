@@ -26,6 +26,7 @@ collections:
       - { label: 封面图, name: image, widget: string, required: false }
       - { label: 标签, name: tags, widget: list, required: false, field: { label: 标签, name: tag, widget: string } }
       - { label: 作者, name: author, widget: string, default: "Sumyu", required: false }
+      - { label: 评论ID, name: comment_id, widget: string, required: false, hint: "发布时间缩写 YYMMDD (如 260701)，同日多篇加后缀 (如 260701-2)，供评论系统定位本文留言" }
       - { label: 置顶, name: pinned, widget: boolean, default: false, required: false }
       - { label: 加密, name: encrypted, widget: boolean, default: false, required: false }
       - { label: 密码, name: password, widget: string, required: false }
@@ -44,6 +45,7 @@ collections:
       - { label: 标题, name: title, widget: string }
       - { label: 日期, name: pubDate, widget: datetime, format: YYYY-MM-DD, date_format: YYYY-MM-DD, time_format: false }
       - { label: 描述, name: description, widget: string, required: false }
+      - { label: 评论ID, name: comment_id, widget: string, required: false, hint: "发布时间缩写 YYMMDD (如 260701)，同日多篇加后缀 (如 260701-2)" }
       - { label: 标签, name: tags, widget: list, required: false, field: { label: 标签, name: tag, widget: string } }
       - { label: 正文, name: body, widget: markdown }
 
@@ -208,10 +210,20 @@ collections:
             widget: object
             fields:
               - { label: 启用, name: enabled, widget: boolean }
+              - { label: 音源, name: source, widget: select, options: [meting, webdav], default: meting }
               - { label: API, name: api, widget: string }
               - { label: 服务, name: server, widget: string }
               - { label: 类型, name: type, widget: string }
               - { label: 歌单ID, name: id, widget: string }
+              - label: WebDAV 音源
+                name: webdav
+                widget: object
+                fields:
+                  - { label: 服务器地址, name: url, widget: string, required: false, hint: "如 https://dav.example.com/dav" }
+                  - { label: 账号, name: username, widget: string, required: false }
+                  - { label: 密码, name: password, widget: string, required: false }
+                  - { label: 音乐目录, name: directory, widget: string, required: false, hint: "WebDAV 上的音乐文件夹路径，如 /music" }
+                  - { label: 直链地址, name: publicUrl, widget: string, required: false, hint: "可选；若服务器支持免鉴权直链则填此项，播放无需代理下载" }
           - label: 评论系统
             name: comment
             widget: object
@@ -298,3 +310,17 @@ collections:
                 name: tags
                 widget: list
                 field: { label: 标签, name: tag, widget: string }
+
+      - label: RSS朋友圈
+        name: rss
+        file: src/data/rss.config.json
+        format: json
+        fields:
+          - label: RSS 订阅源
+            name: rssFriends
+            widget: list
+            fields:
+              - { label: 名称, name: name, widget: string }
+              - { label: 站点地址, name: url, widget: string }
+              - { label: RSS地址, name: feed, widget: string, required: false, hint: "留空则不拉取该站文章" }
+              - { label: 头像, name: avatar, widget: string }

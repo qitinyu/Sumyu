@@ -19,7 +19,7 @@ import { NAV_SECTIONS, SOCIAL_LINKS, SITE_TITLE, SITE_AUTHOR, SITE_SUBTITLE, USE
   <div class="links-of-author">
     {SOCIAL_LINKS.map((s: any) => (
       <a class="sakura-icon-btn links-of-author-item" href={s.url} title={s.name} target="_blank" rel="noopener">
-        <i class={s.icon}></i>
+        <iconify-icon icon={s.icon} aria-hidden="true"></iconify-icon>
       </a>
     ))}
   </div>
@@ -28,7 +28,7 @@ import { NAV_SECTIONS, SOCIAL_LINKS, SITE_TITLE, SITE_AUTHOR, SITE_SUBTITLE, USE
     <ul class="sakura-sidebar-link-items">
       {NAV_SECTIONS.map((item: any) => (
         <li>
-          {item.children ? (
+          {item.children && item.children.length > 0 ? (
             <Fragment>
               <button type="button" class="sakura-sidebar-link-item sidebar-nav-group__toggle" data-nav={item.href} aria-expanded="false">
                 <span class="sidebar-nav-group__label">{item.label}</span>

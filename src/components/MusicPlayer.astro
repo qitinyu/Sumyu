@@ -1,6 +1,13 @@
 ---
 import { MUSIC } from '@/config';
+
+// 数据岛只下发客户端需要的字段; WebDAV 凭据由服务端代理注入 (dev 中间件 / Pages Function), 不暴露到页面源码
+const MUSIC_ISLAND = MUSIC.webdav
+  ? { ...MUSIC, webdav: { ...MUSIC.webdav, username: '', password: '' } }
+  : MUSIC;
 ---
+
+<script is:inline type="application/json" id="music-config" set:html={JSON.stringify(MUSIC_ISLAND)} />
 
 {MUSIC.enabled && (
   <div id="music-panel" class="music-panel" aria-hidden="true">
@@ -22,7 +29,7 @@ import { MUSIC } from '@/config';
             <iconify-icon icon="ri:music-2-fill"></iconify-icon>
           </div>
         </div>
-        <div class="music-panel__song-info">
+        <div class="music-panel__song-info" id="music-song-info" title="点击查看歌词">
           <div class="music-panel__song-name" id="music-name">未播放</div>
           <div class="music-panel__song-artist" id="music-artist">--</div>
         </div>
@@ -67,6 +74,10 @@ import { MUSIC } from '@/config';
         </div>
         <ul class="music-panel__playlist-body" id="music-list"></ul>
       </div>
+
+      <div class="music-panel__lyrics" id="music-lyrics" hidden>
+        <div class="music-panel__lyrics-body" id="music-lyrics-body"></div>
+      </div>
     </div>
   </div>
 )}
@@ -80,14 +91,21 @@ import { MUSIC } from '@/config';
   // 核心: audio 元素通过 transition:persist 跨页面存活, 音乐不中断
   // UI 元素每次过渡后重建, 通过 astro:page-load 重新绑定
 
-  const MUSIC_CFG = {
-    api: 'https://api.qijieya.cn/meting/',
-    server: 'netease',
-    type: 'playlist',
-    id: '17863308200',
-  };
+  // 音源配置: 从 data island (#music-config) 读取, 对应 src/data/feature.config.json 的 music 段
+  type MusicWebdavCfg = { url?: string; directory?: string; publicUrl?: string };
+  type MusicCfg = { source?: string; api?: string; server?: string; type?: string; id?: string; webdav?: MusicWebdavCfg };
+  const MUSIC_CFG: MusicCfg = (() => {
+    try {
+      const el = document.getElementById('music-config');
+      return JSON.parse((el && el.textContent) || '{}');
+    } catch (_) {
+      return {};
+    }
+  })();
+
   const STATE_KEY = 'sumyu-music-state-v2';
-  const SESSION_SONGS_KEY = 'sumyu-music-songs-cache';
+  // v3: 新增歌词字段 (lrc), 旧缓存没有歌词需强制刷新
+  const SESSION_SONGS_KEY = 'sumyu-music-songs-cache-v3';
 
   type Song = { name: string; artist: string; url: string; pic: string; lrc?: string };
   type PlayMode = 'order' | 'loop' | 'random';
@@ -136,6 +154,8 @@ import { MUSIC } from '@/config';
   let $playlistWrap: HTMLElement | null = null;
   let $listBody: HTMLElement | null = null;
   let $listCount: HTMLElement | null = null;
+  let $lyricsWrap: HTMLElement | null = null;
+  let $lyricsBody: HTMLElement | null = null;
 
   const modeConfig: Record<PlayMode, { icon: string; title: string }> = {
     order: { icon: 'ri:order-play-line', title: '顺序播放' },
@@ -194,7 +214,7 @@ import { MUSIC } from '@/config';
       const s = songs[currentIndex];
       if (s && $audio) {
         updateSongInfo();
-        $audio.src = s.url;
+        setAudioSource(s);
       }
       renderList();
       updatePlayBtn();
@@ -262,19 +282,107 @@ import { MUSIC } from '@/config';
     `).join('');
   }
 
+  // ===== 歌词 (LRC) =====
+  type LyricLine = { t: number; text: string };
+  let lyricLines: LyricLine[] = [];
+  let lyricCurrent = -1;
+  let lyricsOpen = false;
+  let lyricToken = 0;
+  const lyricCache = new Map<string, LyricLine[]>();
+
+  // 解析 LRC: 支持 [mm:ss.xx] 与一行多时间标签; 元数据行 ([ar:]/[ti:] 等) 不匹配时间格式自动跳过
+  function parseLrc(text: string): LyricLine[] {
+    const lines: LyricLine[] = [];
+    for (const raw of text.split(/\r?\n/)) {
+      const tags = [...raw.matchAll(/\[(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?\]/g)];
+      if (tags.length === 0) continue;
+      const content = raw.replace(/\[[^\]]*\]/g, '').trim();
+      for (const m of tags) {
+        const frac = m[3] || '0';
+        lines.push({
+          t: parseInt(m[1], 10) * 60 + parseInt(m[2], 10) + parseInt(frac, 10) / Math.pow(10, frac.length),
+          text: content,
+        });
+      }
+    }
+    lines.sort((a, b) => a.t - b.t);
+    return lines;
+  }
+
+  function renderLyrics() {
+    if (!$lyricsBody) return;
+    if (lyricLines.length === 0) {
+      $lyricsBody.innerHTML = '<p class="music-lyrics-empty">暂无歌词 ♪</p>';
+      return;
+    }
+    $lyricsBody.innerHTML = lyricLines
+      .map((l, i) => `<p class="music-lyrics-line${i === lyricCurrent ? ' is-active' : ''}" data-idx="${i}">${l.text ? l.text.replace(/</g, '&lt;') : '♪'}</p>`)
+      .join('');
+  }
+
+  async function loadLyrics(s: Song | undefined) {
+    const token = ++lyricToken;
+    lyricLines = [];
+    lyricCurrent = -1;
+    renderLyrics();
+    if (!s || !s.lrc) return;
+    const cached = lyricCache.get(s.lrc);
+    if (cached) {
+      lyricLines = cached;
+      renderLyrics();
+      return;
+    }
+    try {
+      const res = await fetch(s.lrc);
+      if (!res.ok) return;
+      let text = await res.text();
+      // 网易云歌词接口返回 JSON (内嵌 LRC 文本), 其余当作纯 LRC 文件
+      if (text.trimStart().startsWith('{')) {
+        try {
+          const j = JSON.parse(text);
+          text = (j && j.lrc && j.lrc.lyric) || (j && j.klyric && j.klyric.lyric) || '';
+        } catch (_) { text = ''; }
+      }
+      const parsed = parseLrc(text);
+      lyricCache.set(s.lrc, parsed);
+      if (token !== lyricToken) return; // 期间已切歌
+      lyricLines = parsed;
+      renderLyrics();
+    } catch (_) {}
+  }
+
+  // 按当前播放进度高亮歌词行并居中滚动
+  function updateLyric(cur: number) {
+    if (lyricLines.length === 0 || !$lyricsBody) return;
+    let idx = -1;
+    for (let i = 0; i < lyricLines.length; i++) {
+      if (lyricLines[i].t <= cur + 0.2) idx = i;
+      else break;
+    }
+    if (idx === lyricCurrent) return;
+    lyricCurrent = idx;
+    const children = $lyricsBody.children;
+    for (let i = 0; i < children.length; i++) {
+      children[i].classList.toggle('is-active', i === idx);
+    }
+    const el = children[idx] as HTMLElement | undefined;
+    if (el) $lyricsBody.scrollTo({ top: el.offsetTop - $lyricsBody.clientHeight / 2 + el.clientHeight / 2, behavior: 'smooth' });
+  }
+
   // ===== 核心播放逻辑 =====
   function loadSong(idx: number, autoPlay: boolean) {
     currentIndex = idx;
     const s = songs[idx];
     if (!s || !$audio) return;
     updateSongInfo();
-    $audio.src = s.url;
     if (autoPlay || isPlaying) {
       isPlaying = true;
-      $audio.play().then(() => { updatePlayBtn(); saveState(); }).catch(() => {});
     }
+    // 设置音频源; loadedmetadata 后 isPlaying 会自动续播
+    setAudioSource(s);
     renderList();
     updatePlayBtn();
+    saveState();
   }
 
   function playNext() {
@@ -303,11 +411,175 @@ import { MUSIC } from '@/config';
     loadSong(prev, true);
   }
 
-  // ===== 加载歌单 =====
+  // ===== 音频源设置 =====
+  // WebDAV 走同源代理 (服务端注入鉴权并剥离 attachment 响应头), 直接流式播放, 原生支持 Range 与进度拖动
+  function setAudioSource(s: Song) {
+    if (!$audio) return;
+    $audio.src = s.url;
+    // 切歌时同步加载歌词 (WebDAV 走代理, meting 为外链, 失败则显示"暂无歌词")
+    loadLyrics(s);
+  }
+
+  // ===== 加载歌单 (按 source 分发: meting / webdav) =====
   async function loadSongs() {
+    if (MUSIC_CFG.source === 'webdav') {
+      return loadSongsWebdav();
+    }
+    return loadSongsMeting();
+  }
+
+  // ===== WebDAV 音源: 经同源代理 /webdav/* PROPFIND 列目录 → 歌曲列表 =====
+  // 坚果云无 CORS 头不能直连: dev 由 astro.config.mjs 中间件转发, 生产由 Cloudflare Pages Function 代理
+  async function fetchWebdavSongs(): Promise<Song[]> {
+    const wd = MUSIC_CFG.webdav || {};
+    if (!wd.url) throw new Error('未配置 WebDAV 地址');
+    const dir = (wd.directory || '').replace(/^\/+|\/+$/g, '');
+    const pubBase = (wd.publicUrl || '').replace(/\/+$/, '');
+    const listUrl = '/webdav/' + dir.split('/').filter(Boolean).map(encodeURIComponent).join('/') + '/';
+
+    // 鉴权由代理服务端注入, 客户端无需携带凭据
+    const res = await fetch(listUrl, {
+      method: 'PROPFIND',
+      headers: {
+        Depth: '1',
+        'Content-Type': 'application/xml',
+      },
+      body: '<?xml version="1.0" encoding="UTF-8"?><d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/></d:prop></d:propfind>',
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const doc = new DOMParser().parseFromString(await res.text(), 'text/xml');
+    const responses = Array.from(doc.getElementsByTagNameNS('DAV:', 'response'));
+
+    // 上游服务的 base path (如坚果云 /dav), 用于把返回的 href 映射成 /webdav/ 代理路径
+    let basePath = '';
+    try { basePath = new URL(wd.url).pathname.replace(/\/+$/, ''); } catch (_) { basePath = ''; }
+    const toProxy = (href: string): string => {
+      let p = href;
+      if (/^https?:\/\//i.test(p)) {
+        try { p = new URL(p).pathname; } catch (_) { return ''; }
+      }
+      if (basePath && p.startsWith(basePath + '/')) p = p.slice(basePath.length);
+      return '/webdav' + p;
+    };
+
+    type WebdavEntry = { href: string; stem: string; ext: string };
+    const entries: WebdavEntry[] = [];
+    for (const r of responses) {
+      const hrefEl = r.getElementsByTagNameNS('DAV:', 'href')[0];
+      if (!hrefEl || !hrefEl.textContent) continue;
+      const rt = r.getElementsByTagNameNS('DAV:', 'resourcetype')[0];
+      if (rt && rt.getElementsByTagNameNS('DAV:', 'collection').length > 0) continue; // 跳过目录
+      const rawName = hrefEl.textContent.split('/').filter(Boolean).pop() || '';
+      entries.push({
+        href: hrefEl.textContent,
+        stem: decodeURIComponent(rawName.replace(/\.[^.]+$/, '')),
+        ext: (rawName.match(/\.([^.]+)$/) || [])[1]?.toLowerCase() || '',
+      });
+    }
+
+    const audioExts = ['mp3', 'flac', 'm4a', 'ogg', 'wav', 'aac', 'opus'];
+    const audioEntries = entries
+      .filter((e) => audioExts.includes(e.ext))
+      .sort((a, b) => a.stem.localeCompare(b.stem, 'zh-CN'));
+    if (audioEntries.length === 0) return [];
+
+    // 同名封面图 (jpg/png/webp): 代理模式下 <img> 也能直连 (服务端注入鉴权)
+    const coverMap = new Map<string, WebdavEntry>();
+    for (const e of entries) {
+      if (['jpg', 'jpeg', 'png', 'webp'].includes(e.ext)) coverMap.set(e.stem, e);
+    }
+    // 通用封面兜底: 目录下 cover/folder/album 图片可作为整目录默认封面
+    let genericCover: WebdavEntry | null = null;
+    for (const e of entries) {
+      if (['jpg', 'jpeg', 'png', 'webp'].includes(e.ext)) {
+        const st = e.stem.toLowerCase();
+        if (st === 'cover' || st === 'folder' || st === 'album') { genericCover = e; break; }
+      }
+    }
+
+    // 歌词匹配: 优先同名 .lrc; 文件名不完全一致时按“去符号小写后公共前缀 ≥ 4 字符”兜底
+    // (如 "化作孤岛的鲸 不扎.mp3" ↔ "化作孤岛的鲸-蔡明希（不扎）.lrc")
+    const lrcEntries = entries.filter((e) => e.ext === 'lrc');
+    const normalizeStem = (v: string) =>
+      v.replace(/[\s\-–—_·・.。,，、()（）【】\[\]{}「」『』'"~～!！?？:：;；]+/g, '').toLowerCase();
+    const matchLrc = (stem: string): WebdavEntry | null => {
+      const exact = lrcEntries.find((e) => e.stem === stem);
+      if (exact) return exact;
+      const ns = normalizeStem(stem);
+      if (!ns) return null;
+      let best: WebdavEntry | null = null;
+      let bestLen = 0;
+      for (const lrc of lrcEntries) {
+        const nl = normalizeStem(lrc.stem);
+        let n = 0;
+        while (n < ns.length && n < nl.length && ns[n] === nl[n]) n++;
+        // 强匹配: 公共前缀 ≥ 4 字符, 或短方被完整包含 (如 "月亮.lrc" ↔ "月亮 - 胡彦斌.mp3")
+        const strong = n >= 4 || (n >= 2 && n === Math.min(ns.length, nl.length));
+        if (strong && n > bestLen) { bestLen = n; best = lrc; }
+      }
+      return best;
+    };
+
+    return audioEntries.map((e) => {
+      const fileName = e.href.split('/').filter(Boolean).pop() || '';
+      // 配置了 publicUrl 直链域名时优先走直链, 否则走同源代理
+      const url = pubBase ? pubBase + '/' + fileName : toProxy(e.href);
+      // 文件名解析 "歌手 - 歌名"
+      let name = e.stem;
+      let artist = '--';
+      const sep = name.indexOf(' - ');
+      if (sep > 0) {
+        artist = name.slice(0, sep);
+        name = name.slice(sep + 3);
+      }
+      const cover = coverMap.get(e.stem) || genericCover;
+      const pic = cover ? (pubBase ? pubBase + '/' + (cover.href.split('/').filter(Boolean).pop() || '') : toProxy(cover.href)) : '';
+      const lrc = matchLrc(e.stem);
+      return {
+        name, artist, url, pic,
+        lrc: lrc ? (pubBase ? pubBase + '/' + (lrc.href.split('/').filter(Boolean).pop() || '') : toProxy(lrc.href)) : '',
+      };
+    }).filter((s) => s.url);
+  }
+
+  async function loadSongsWebdav() {
+    if (songs.length > 0) return;
+    showStatus('加载歌单中...', false);
+    try {
+      const newSongs = await fetchWebdavSongs();
+      hideStatus();
+      if (newSongs.length === 0) {
+        showStatus('WebDAV 目录中没有音频文件', true);
+        return;
+      }
+      songs = newSongs;
+      cacheSongs();
+      const saved = restoreState();
+      if (saved) {
+        currentIndex = Math.min(saved.currentIndex, songs.length - 1);
+        isPlaying = saved.isPlaying;
+        setMode(saved.playMode);
+        pendingSeek = saved.currentTime;
+      }
+      const s = songs[currentIndex];
+      if (s && $audio) {
+        updateSongInfo();
+        setAudioSource(s);
+      }
+      renderList();
+      updatePlayBtn();
+    } catch (e) {
+      hideStatus();
+      showStatus('歌单加载失败: ' + (e instanceof Error ? e.message : '网络异常'), true);
+      console.warn('[Music] WebDAV 加载歌单失败', e);
+    }
+  }
+
+  // ===== Meting 音源 (网易云等) =====
+  async function loadSongsMeting() {
     if (songs.length > 0 && restoredFromCache) {
       try {
-        const url = `${MUSIC_CFG.api}?server=${MUSIC_CFG.server}&type=${MUSIC_CFG.type}&id=${MUSIC_CFG.id}`;
+        const url = `${MUSIC_CFG.api || ''}?server=${MUSIC_CFG.server || ''}&type=${MUSIC_CFG.type || ''}&id=${MUSIC_CFG.id || ''}`;
         const res = await fetch(url);
         const data = await res.json();
         const newSongs = (Array.isArray(data) ? data : []).map((it: any) => ({
@@ -328,7 +600,7 @@ import { MUSIC } from '@/config';
     if (songs.length > 0) return;
     showStatus('加载歌单中...', false);
     try {
-      const url = `${MUSIC_CFG.api}?server=${MUSIC_CFG.server}&type=${MUSIC_CFG.type}&id=${MUSIC_CFG.id}`;
+      const url = `${MUSIC_CFG.api || ''}?server=${MUSIC_CFG.server || ''}&type=${MUSIC_CFG.type || ''}&id=${MUSIC_CFG.id || ''}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
@@ -352,7 +624,7 @@ import { MUSIC } from '@/config';
       const s = songs[currentIndex];
       if (s && $audio) {
         updateSongInfo();
-        $audio.src = s.url;
+        setAudioSource(s);
       }
       renderList();
       updatePlayBtn();
@@ -405,6 +677,7 @@ import { MUSIC } from '@/config';
       const pct = dur > 0 ? (cur / dur) * 100 : 0;
       if ($playedBar) $playedBar.style.width = pct + '%';
       if ($thumbEl) $thumbEl.style.left = pct + '%';
+      updateLyric(cur);
     });
     $audio.addEventListener('progress', () => {
       const dur = $audio!.duration || 0;
@@ -452,7 +725,13 @@ import { MUSIC } from '@/config';
   });
 
   // ===== 页面级初始化 (UI 绑定, 每次 View Transition 后重新绑定) =====
+  // 防重复绑定: 整页首次加载时本函数会被"模块执行"和 astro:page-load 先后各触发一次,
+  // 同一 DOM 绑两遍会让点击开关连续 open→close 相互抵消, 表现为面板"点了却弹不出来"
+  let boundPanelEl: HTMLElement | null = null;
   function initMusicUI() {
+    const panelEl = document.getElementById('music-panel');
+    if (panelEl === boundPanelEl) return; // 同一份 DOM 已绑定过 (VT 后 DOM 重建, 会正常重新绑定)
+    boundPanelEl = panelEl;
     // 根据 localStorage 开关控制显示
     if (!checkMusicEnabled()) {
       const p = document.getElementById('music-panel');
@@ -485,6 +764,8 @@ import { MUSIC } from '@/config';
     $playlistWrap = document.getElementById('music-playlist');
     $listBody = document.getElementById('music-list');
     $listCount = document.getElementById('music-list-count');
+    $lyricsWrap = document.getElementById('music-lyrics');
+    $lyricsBody = document.getElementById('music-lyrics-body');
 
     // 绑定 audio 事件 (仅首次, audio 已 persist)
     bindAudioEvents();
@@ -525,14 +806,38 @@ import { MUSIC } from '@/config';
 
     function setPlaylistOpen(open: boolean) {
       if (!$playlistWrap || !$listBtn) return;
+      if (open) setLyricsOpen(false); // 列表与歌词互斥
       $playlistWrap.hidden = !open;
       $listBtn.classList.toggle('is-active', open);
+    }
+    function setLyricsOpen(open: boolean) {
+      if (!$lyricsWrap) return;
+      lyricsOpen = open;
+      if (open && $playlistWrap && !$playlistWrap.hidden) {
+        $playlistWrap.hidden = true;
+        $listBtn?.classList.remove('is-active');
+      }
+      $lyricsWrap.hidden = !open;
     }
     $listBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
       setPlaylistOpen(!!$playlistWrap?.hidden);
     });
     $listClearBtn?.addEventListener('click', () => setPlaylistOpen(false));
+
+    // 点击歌名区域展开/收起歌词
+    document.getElementById('music-song-info')?.addEventListener('click', () => {
+      setLyricsOpen(!lyricsOpen);
+    });
+    // 点击歌词行跳转播放进度
+    $lyricsBody?.addEventListener('click', (e) => {
+      const line = (e.target as HTMLElement).closest('.music-lyrics-line') as HTMLElement | null;
+      if (!line || !$audio) return;
+      const idx = parseInt(line.getAttribute('data-idx') || '-1', 10);
+      if (idx >= 0 && idx < lyricLines.length) {
+        try { $audio.currentTime = lyricLines[idx].t; } catch (_) {}
+      }
+    });
 
     $listBody?.addEventListener('click', (e) => {
       const item = (e.target as HTMLElement).closest('.music-list-item') as HTMLElement | null;
@@ -557,6 +862,9 @@ import { MUSIC } from '@/config';
     }
     updatePlayBtn();
     renderList();
+    // 恢复歌词视图 (VT 后 DOM 重建, 模块级歌词数据仍在)
+    renderLyrics();
+    if ($lyricsWrap) $lyricsWrap.hidden = !lyricsOpen;
     if (musicPanelIsOpen) {
       $panel?.classList.add('is-open');
       $panel?.setAttribute('aria-hidden', 'false');
@@ -575,11 +883,9 @@ import { MUSIC } from '@/config';
   }
   setMode(playMode);
   updatePlayBtn();
-  // 3. 仅当音乐开关开启时才加载歌单
+  // 3. 仅当音乐开关开启时才加载歌单 (sessionStorage 缓存命中则跳过重复请求)
   if (checkMusicEnabled()) {
     if (!restoreFromCache()) {
-      loadSongs();
-    } else {
       loadSongs();
     }
   }
@@ -670,7 +976,7 @@ import { MUSIC } from '@/config';
   }
   .music-panel__cover.is-spinning img { animation: music-cover-spin 8s linear infinite; }
   @keyframes music-cover-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-  .music-panel__song-info { flex: 1; min-width: 0; }
+  .music-panel__song-info { flex: 1; min-width: 0; cursor: pointer; }
   .music-panel__song-name {
     font-size: 13px; color: var(--text-strong); font-weight: 500;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -800,6 +1106,26 @@ import { MUSIC } from '@/config';
   .music-list-item.is-active .music-list-item__name { color: var(--sakura-primary); font-weight: 500; }
   .music-list-item.is-active .music-list-item__artist { color: var(--sakura-primary-soft); }
 
+  .music-panel__lyrics {
+    border-top: 1px solid var(--border-soft);
+    max-height: 220px; overflow: hidden;
+    background: var(--bg-soft);
+  }
+  .music-panel__lyrics-body {
+    height: 220px; overflow-y: auto;
+    padding: 12px 14px;
+    mask-image: linear-gradient(transparent, #000 18%, #000 82%, transparent);
+    -webkit-mask-image: linear-gradient(transparent, #000 18%, #000 82%, transparent);
+  }
+  .music-lyrics-line {
+    font-size: 12px; color: var(--text-muted); text-align: center;
+    line-height: 1.6; padding: 3px 0; margin: 0;
+    cursor: pointer; transition: color var(--transition-fast);
+  }
+  .music-lyrics-line:hover { color: var(--text-base); }
+  .music-lyrics-line.is-active { color: var(--sakura-primary); font-weight: 600; }
+  .music-lyrics-empty { text-align: center; font-size: 11px; color: var(--text-faint); margin: 0; padding: 24px 0; }
+
   @media (max-width: 480px) {
     .music-panel { right: 8px; top: calc(var(--navbar-height, 60px) + 6px); }
     .music-panel__popup { width: 250px; max-width: calc(100vw - 16px); }
@@ -825,5 +1151,7 @@ import { MUSIC } from '@/config';
     .music-list-item__idx { width: 20px; font-size: 10px; }
     .music-list-item__name { font-size: 11px; }
     .music-list-item__artist { font-size: 9px; }
+    .music-panel__lyrics-body { height: 180px; padding: 10px; }
+    .music-lyrics-line { font-size: 11px; }
   }
 </style>

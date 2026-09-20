@@ -3,11 +3,15 @@ import { HERO_IMAGES, HERO_SETTINGS, RANDOM_QUOTES, SOCIAL_LINKS, USER_PROFILE }
 ---
 
 <section class="sakura-hero" id="hero">
+  {HERO_IMAGES.length > 0 && <link rel="preload" as="image" href={HERO_IMAGES[0]} />}
   <div class="sakura-hero__media">
     <div class="sakura-hero-background" id="hero-media">
       <div class="sakura-hero-background-stage" id="hero-media-stage">
         {HERO_IMAGES.map((src, i) => (
-          <div class={`sakura-hero-background-slide${i === 0 ? ' is-active' : ''}`} style={`background-image: url('${src}')`}></div>
+          <div
+            class={`sakura-hero-background-slide${i === 0 ? ' is-active' : ''}`}
+            style={i === 0 ? `background-image: url('${src}')` : ''}
+            data-bg={i > 0 ? src : undefined}></div>
         ))}
       </div>
       <div class="sakura-hero__overlay"></div>
@@ -49,7 +53,7 @@ import { HERO_IMAGES, HERO_SETTINGS, RANDOM_QUOTES, SOCIAL_LINKS, USER_PROFILE }
       <div class="sakura-hero__socials">
         {SOCIAL_LINKS.map((s: any) => (
           <a class="sakura-hero__social" href={s.url} target="_blank" rel="noopener" title={s.name} aria-label={s.name}>
-            <i class={s.icon}></i>
+            <iconify-icon icon={s.icon} aria-hidden="true"></iconify-icon>
           </a>
         ))}
       </div>
@@ -63,10 +67,20 @@ import { HERO_IMAGES, HERO_SETTINGS, RANDOM_QUOTES, SOCIAL_LINKS, USER_PROFILE }
   </div>
 </section>
 
-<!-- Font Awesome for brand icons -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
-
 <script>
+  // 非首屏背景图: 页面 load 后再注入 background-image, 避免首屏一次性下载全部轮播图
+  function hydrateHeroBackgrounds() {
+    document.querySelectorAll<HTMLElement>('.sakura-hero-background-slide[data-bg]').forEach((el) => {
+      const src = el.getAttribute('data-bg');
+      if (src) el.style.backgroundImage = `url('${src}')`;
+    });
+  }
+  if (document.readyState === 'complete') {
+    hydrateHeroBackgrounds();
+  } else {
+    window.addEventListener('load', hydrateHeroBackgrounds, { once: true });
+  }
+
   let heroSlideTimer = null;
   function initHero() {
     // ---- Hero image rotation ----
@@ -123,7 +137,7 @@ import { HERO_IMAGES, HERO_SETTINGS, RANDOM_QUOTES, SOCIAL_LINKS, USER_PROFILE }
         }
       }
       async function loop() {
-        while (true) {
+        while (quoteEl.isConnected) {
           await typeText(quotes[qIdx]);
           await eraseText();
           qIdx = (qIdx + 1) % quotes.length;
@@ -248,7 +262,7 @@ import { HERO_IMAGES, HERO_SETTINGS, RANDOM_QUOTES, SOCIAL_LINKS, USER_PROFILE }
     box-shadow: var(--shadow-pink);
     color: #fff;
   }
-  .sakura-hero__social i { line-height: 1; }
+  .sakura-hero__social iconify-icon { line-height: 1; }
 
   /* scroll down */
   .sakura-hero__scroll {

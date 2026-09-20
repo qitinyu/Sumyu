@@ -19,10 +19,18 @@
   },
   "music": {
     "enabled": true,
+    "source": "webdav",
     "api": "https://api.qijieya.cn/meting/",
     "server": "netease",
     "type": "playlist",
-    "id": "17863308200"
+    "id": "17863308200",
+    "webdav": {
+      "url": "https://dav.jianguoyun.com/dav/",
+      "username": "484894496@qq.com",
+      "password": "a3ajk3mke2s59mk5",
+      "directory": "/Sumy music",
+      "publicUrl": ""
+    }
   },
   "comment": {
     "enable": true,

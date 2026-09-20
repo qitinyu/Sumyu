@@ -100,6 +100,7 @@ const COLLECTIONS = [
     { name: 'src/data/feature.config.json', label: '功能开关' },
     { name: 'src/data/footer.config.json', label: '页脚配置' },
     { name: 'src/data/links.config.json', label: '友情链接' },
+    { name: 'src/data/rss.config.json', label: 'RSS朋友圈' },
     { name: 'package.json', label: '版本号' },
   ]},
 ];
@@ -147,8 +148,9 @@ function buildContent(data, body) {
       yaml += `${k}: [${v.join(', ')}]\n`;
     } else if (typeof v === 'boolean') {
       yaml += `${k}: ${v}\n`;
-    } else if (typeof v === 'string' && /[:#]/.test(v)) {
-      yaml += `${k}: "${v}"\n`;
+    } else if (typeof v === 'string') {
+      // 字符串一律加引号, 避免纯数字 (如 comment_id: 260920) 被 YAML 解析成整数导致校验失败
+      yaml += `${k}: "${v.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"\n`;
     } else {
       yaml += `${k}: ${v}\n`;
     }
@@ -337,6 +339,7 @@ function renderMeta(data) {
     { label: '描述', key: 'description', type: 'text' },
     { label: '作者', key: 'author', type: 'text' },
     { label: '标签', key: 'tags', type: 'tags' },
+    { label: '评论ID', key: 'comment_id', type: 'text' },
     { label: '置顶', key: 'pinned', type: 'checkbox' },
     { label: '加密', key: 'encrypted', type: 'checkbox' },
     { label: '密码', key: 'password', type: 'text' },
@@ -457,7 +460,13 @@ async function newFile() {
   const path = 'src/content/' + colName + (subdir ? '/' + subdir.replace(/\/?$/, '/') : '') + fileName + '.md';
   currentFile = path;
   currentCollection = colName;
-  currentData = { title: fileName, pubDate: new Date().toISOString().slice(0,10) };
+  // 题头预设: pubDate + comment_id (发布时间缩写 YYMMDD, 供评论系统定位本文留言)
+  const now = new Date();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const localDate = now.getFullYear() + '-' + mm + '-' + dd;
+  const commentId = String(now.getFullYear()).slice(2) + mm + dd;
+  currentData = { title: fileName, pubDate: localDate, comment_id: commentId };
   currentBody = '';
   const raw = buildContent(currentData, currentBody);
   document.getElementById('editor').value = raw;
@@ -470,21 +479,45 @@ async function newFile() {
 }
 
 // ====== Sync to repo ======
+async function postSync(url) {
+  const res = await fetch(url, { method: 'POST' });
+  const data = await res.json().catch(() => null);
+  return { status: res.status, ok: res.ok, data };
+}
+
 async function syncToRepo() {
   const btn = document.getElementById('btnSync');
+  const isLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
   try {
     btn.textContent = '同步中...';
     btn.disabled = true;
-    document.getElementById('statusLeft').textContent = '正在同步到 D:\\YQ\\Sumyu...';
-    const res = await fetch('http://localhost:8082/sync', { method: 'POST' });
-    const data = await res.json();
-    console.log('[sync] response:', data);
-    if (data.success) {
-      toast('已同步到正式仓库');
-      document.getElementById('statusLeft').textContent = '已同步到正式仓库';
-    } else {
-      throw new Error(data.error || '同步失败');
+    document.getElementById('statusLeft').textContent = '正在同步到正式仓库...';
+    if (!isLocal) throw new Error('同步功能仅在本地开发模式可用');
+
+    // 优先走 astro dev 内置接口 /api/sync (无需单独启动 sync-server)
+    let r = null;
+    try {
+      r = await postSync('/api/sync');
+    } catch (_) {
+      r = null;
     }
+
+    // 回退: 旧版独立 sync-server (端口 8082，适用于未内置 /api/sync 的项目副本)
+    if (!r || r.status === 404) {
+      try {
+        r = await postSync('http://localhost:8082/sync');
+      } catch (_) {
+        throw new Error('无法连接同步服务，请用 pnpm cms:dev 启动 (或确认 astro dev 已重启以加载同步接口)');
+      }
+    }
+
+    if (!r.ok || !r.data || !r.data.success) {
+      throw new Error((r.data && r.data.error) || ('同步失败 (HTTP ' + r.status + ')'));
+    }
+
+    console.log('[sync] response:', r.data);
+    toast('已同步到正式仓库');
+    document.getElementById('statusLeft').textContent = '已同步到正式仓库';
   } catch (e) {
     console.error('[sync] error:', e);
     toast('同步失败: ' + e.message);

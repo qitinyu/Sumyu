@@ -19,13 +19,13 @@ const isEncrypted = post.data.encrypted;
     </a>
   )}
   <div class="blog-card__body">
-    {post.data.pinned && (
-      <span class="blog-card__pinned">
-        <iconify-icon icon="mdi:pin" aria-hidden="true"></iconify-icon>
-        置顶
-      </span>
-    )}
     <div class="blog-card__meta">
+      {post.data.pinned && (
+        <span class="blog-card__pinned">
+          <iconify-icon icon="mdi:pin" aria-hidden="true"></iconify-icon>
+          置顶
+        </span>
+      )}
       <span class="blog-card__date">
         <iconify-icon icon="mdi:calendar-outline" aria-hidden="true"></iconify-icon>
         {formatDate(post.data.pubDate)}
@@ -96,10 +96,9 @@ const isEncrypted = post.data.encrypted;
 
   .blog-card__body { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 
-  /* 置顶徽章 */
+  /* 置顶徽章: 位于 meta 行最前 */
   .blog-card__pinned {
     display: inline-flex; align-items: center; gap: 4px;
-    align-self: flex-start;
     font-size: 11px; color: #fff;
     background: var(--sakura-primary);
     padding: 2px 10px; border-radius: var(--radius-full);

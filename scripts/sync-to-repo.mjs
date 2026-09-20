@@ -16,7 +16,6 @@ const SYNC_ITEMS = [
   'public/admin/config.yml',
   'scripts/sync-to-repo.mjs',
   'scripts/sync-server.mjs',
-  'admin-guide.md',
   'pnpm-lock.yaml',
 ];
 
@@ -79,6 +78,12 @@ function main() {
 
   if (!fs.existsSync(TARGET)) {
     error('目标路径不存在:', TARGET);
+    process.exit(1);
+  }
+
+  // 防止在正式仓库内运行开发服务时把项目同步到自己（同路径复制会损坏文件）
+  if (path.resolve(TARGET) === SOURCE) {
+    error('目标路径与当前项目相同，无需同步:', TARGET);
     process.exit(1);
   }
 

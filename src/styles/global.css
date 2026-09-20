@@ -3,8 +3,7 @@
    Inspired by Hugo Sakura theme · Pink color (#DF9193)
    ========================================================= */
 
-/* ---------- Fonts ---------- */
-@import url('https://cdn.jsdelivr.net/npm/lxgw-wenkai-screen-webfont/lxgwwenkaiscreen.css');
+/* 字体 CSS 由 Layout.astro 通过 <link> + preconnect 并行加载 (避免 @import 串行阻塞渲染) */
 
 /* ---------- 全局基础规则 ---------- */
 /* 关键: [hidden] 属性必须显式声明 display:none, 否则会被 display:flex/grid 等覆盖 */

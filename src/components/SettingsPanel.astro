@@ -203,6 +203,7 @@ import { SETTINGS_PANEL, THEME_COLORS, LIVE2D } from '@/config';
     live2dToggle?.addEventListener('change', () => {
       localStorage.setItem('sumyu-live2d', String(live2dToggle.checked));
       applyLive2d(live2dToggle.checked);
+      if (live2dToggle.checked) window.dispatchEvent(new CustomEvent('sumyu:live2d-enabled'));
     });
 
     // Live2D model switch

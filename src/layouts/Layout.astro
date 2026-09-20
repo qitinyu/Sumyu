@@ -49,6 +49,10 @@ const htmlClass = [isHome ? 'is-home has-home-layout' : '', ''].join(' ');
   <!-- Iconify -->
   <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js" defer></script>
 
+  <!-- 字体: preconnect + link 并行加载 (替代 CSS @import 串行请求) -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-screen-webfont/lxgwwenkaiscreen.css" />
+
   <!-- Theme + theme-color init (run before paint to avoid FOUC) -->
   <script is:inline>
     (function () {

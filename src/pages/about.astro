@@ -34,7 +34,7 @@ const descLines = aboutData.desc.split('\n').filter(l => l.trim());
       <div class="about-card__socials">
         {SOCIAL_LINKS.map((s: any) => (
           <a class="sakura-icon-btn" href={s.url} title={s.name} target="_blank" rel="noopener">
-            <i class={s.icon}></i>
+            <iconify-icon icon={s.icon} aria-hidden="true"></iconify-icon>
           </a>
         ))}
       </div>
