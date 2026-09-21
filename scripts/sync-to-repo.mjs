@@ -14,6 +14,7 @@ const SYNC_ITEMS = [
   'src/config.ts',
   'src/pages/admin.astro',
   'public/admin/config.yml',
+  'functions',
   'scripts/sync-to-repo.mjs',
   'scripts/sync-server.mjs',
   'pnpm-lock.yaml',
