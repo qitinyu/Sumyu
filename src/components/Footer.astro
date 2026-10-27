@@ -2,33 +2,29 @@
 import { footerConfig } from '@/data/footer';
 
 const { brand, copyright, powered, icp, customLines } = footerConfig;
-const year = copyright.year || new Date().getFullYear();
 ---
 
 <footer class="sakura-footer">
   <div class="sakura-footer__inner container">
-    <!-- 第一行: 品牌标语 -->
+    <!-- 第一行: 站点名 · 副标题 · 版本号 -->
     <div class="sakura-footer__brand">
       <span class="sakura-footer__title">{brand.title}</span>
-      <span class="sakura-footer__sep">·</span>
+      <span class="sakura-footer__sep">•</span>
       <span class="sakura-footer__subtitle">{brand.subtitle}</span>
+      <span class="sakura-footer__sep">•</span>
+      <span class="sakura-footer__version">V{powered.version}</span>
     </div>
 
-    <!-- 第二行: 版权 -->
+    <!-- 第二行: 技术栈与作者 -->
     <div class="sakura-footer__row">
-      Copyright © {year} {copyright.owner}
-      <span class="sakura-footer__sep">·</span>
-      <a href={copyright.siteUrl} target="_blank" rel="noopener">{copyright.siteUrl}</a>
-      <a href={`mailto:${copyright.email}`}>{copyright.email}</a>
+      Powered by
+      <span class="sakura-footer__sep">•</span>
+      {powered.framework} &amp; {powered.theme}
+      <span class="sakura-footer__sep">•</span>
+      {copyright.owner}
     </div>
 
-    <!-- 第三行: 技术栈 -->
-    <div class="sakura-footer__row">
-      Powered by {powered.framework} &amp; {powered.theme}
-      <span class="sakura-footer__sep">·</span> Version {powered.version}
-    </div>
-
-    <!-- 第四行: 备案信息 (可选) -->
+    <!-- 第三行: 备案信息 (可选) -->
     {icp && (
       <div class="sakura-footer__row sakura-footer__icp" set:html={icp} />
     )}
@@ -62,11 +58,17 @@ const year = copyright.year || new Date().getFullYear();
   .sakura-footer__subtitle {
     font-size: 12px; color: var(--sakura-primary); letter-spacing: 0.1em;
   }
+  .sakura-footer__version {
+    font-size: 11px; color: var(--text-muted); letter-spacing: 0.06em;
+  }
   .sakura-footer__row {
-    color: var(--text-faint); font-size: 11px; line-height: 1.4;
+    color: var(--text-muted); font-size: 12px; line-height: 1.5;
   }
   .sakura-footer__row a { color: var(--text-muted); transition: color var(--transition-fast); }
   .sakura-footer__row a:hover { color: var(--sakura-primary); }
-  .sakura-footer__sep { margin: 0 3px; color: var(--text-faint); opacity: 0.6; }
-  .sakura-footer__icp { margin-top: 4px; opacity: 0.8; }
+  /* customLines 是 set:html 注入的, 拿不到样式作用域, 需要 :global */
+  .sakura-footer__row :global(a) { color: var(--text-muted); }
+  .sakura-footer__row :global(a:hover) { color: var(--sakura-primary); }
+  .sakura-footer__sep { margin: 0 4px; color: var(--text-faint); opacity: 0.7; }
+  .sakura-footer__icp { margin-top: 2px; }
 </style>

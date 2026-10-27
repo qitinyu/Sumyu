@@ -113,31 +113,66 @@ let currentData = {};
 let currentBody = '';
 
 // ====== Frontmatter helpers ======
+// 统一换行符: decap-server 读到的 Windows 文件是 CRLF, 直接按 \n 匹配会导致解析失败
+function normalizeNewlines(raw) {
+  return String(raw == null ? '' : raw).replace(/\r\n?/g, '\n');
+}
+
+function unquote(s) {
+  const v = String(s).trim();
+  if (v.length >= 2) {
+    if (v.startsWith('"') && v.endsWith('"')) {
+      return v.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+    }
+    if (v.startsWith("'") && v.endsWith("'")) {
+      return v.slice(1, -1);
+    }
+  }
+  return v;
+}
+
 function parseFrontmatter(raw) {
   const result = {};
-  const m = raw.match(/^---\n([\s\S]*?)\n---/);
+  const text = normalizeNewlines(raw);
+  const m = text.match(/^---\n([\s\S]*?)\n---/);
   if (!m) return result;
+
+  let currentKey = null;
   for (const line of m[1].split('\n')) {
+    // YAML 列表续行: "  - 值"
+    const listItem = line.match(/^\s+-\s+(.*)$/);
+    if (listItem && currentKey) {
+      if (!Array.isArray(result[currentKey])) result[currentKey] = [];
+      result[currentKey].push(unquote(listItem[1]));
+      continue;
+    }
+
     const idx = line.indexOf(':');
     if (idx === -1) continue;
     const key = line.slice(0, idx).trim();
-    let val = line.slice(idx + 1).trim();
-    if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1);
-    if (val.startsWith("'") && val.endsWith("'")) val = val.slice(1, -1);
+    const val = line.slice(idx + 1).trim();
+    if (!key) continue;
+    currentKey = key;
+
     if (val.startsWith('[') && val.endsWith(']')) {
-      val = val.slice(1, -1).split(',').map(v => v.trim()).filter(Boolean);
+      result[key] = val.slice(1, -1).split(',').map((v) => unquote(v)).filter(Boolean);
+    } else if (val === 'true') {
+      result[key] = true;
+    } else if (val === 'false') {
+      result[key] = false;
+    } else {
+      // 空值先占位, 若后续出现列表续行会被覆盖为数组
+      result[key] = unquote(val);
     }
-    if (val === 'true') val = true;
-    if (val === 'false') val = false;
-    result[key] = val;
   }
   return result;
 }
 
 function extractBody(raw) {
-  const m = raw.match(/^---\n[\s\S]*?\n---\n*/);
-  if (!m) return raw;
-  return raw.slice(m[0].length);
+  const text = normalizeNewlines(raw);
+  const m = text.match(/^---\n[\s\S]*?\n---\n*/);
+  if (!m) return text;
+  return text.slice(m[0].length);
 }
 
 function buildContent(data, body) {
@@ -160,11 +195,16 @@ function buildContent(data, body) {
 
 // ====== API call ======
 async function api(action, params = {}) {
-  const res = await fetch(API, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, params: { branch: 'master', ...params } }),
-  });
+  let res;
+  try {
+    res = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, params: { branch: 'master', ...params } }),
+    });
+  } catch (_) {
+    throw new Error('无法连接本地代理服务 ' + API + '，请先在项目根目录运行 pnpm cms');
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || res.statusText);
@@ -305,7 +345,7 @@ async function loadFile(colName, filePath, isConfig) {
   try {
     document.getElementById('statusLeft').textContent = '加载中...';
     const entry = await api('getEntry', { path: filePath });
-    const raw = entry.data || '';
+    const raw = normalizeNewlines(entry.data || '');
     currentData = parseFrontmatter(raw);
     currentBody = extractBody(raw);
     document.getElementById('editor').value = raw;
@@ -313,7 +353,14 @@ async function loadFile(colName, filePath, isConfig) {
     if (isConfig) {
       document.getElementById('metaBar').innerHTML = '';
     } else {
-      renderMeta(currentData);
+      const parsedCount = Object.keys(currentData).length;
+      if (parsedCount === 0 && raw.trimStart().startsWith('---')) {
+        // 解析失败时不要让元信息栏覆盖正文, 否则会把整个文件写坏
+        document.getElementById('metaBar').innerHTML =
+          '<span style="color:#e74c3c">frontmatter 解析异常，已切换为纯文本编辑模式（仅直接编辑下方内容后保存）</span>';
+      } else {
+        renderMeta(currentData);
+      }
     }
     renderPreview();
     document.getElementById('statusLeft').textContent = '已加载';
@@ -359,7 +406,8 @@ function renderMeta(data) {
     } else if (f.type === 'tags') {
       const wrap = document.createElement('span');
       wrap.className = 'tag-input';
-      const tags = data[f.key] || [];
+      // 兼容 "tags: xxx" 被解析成字符串的情况, 避免后续 forEach 报错
+      const tags = Array.isArray(data[f.key]) ? data[f.key].slice() : (data[f.key] ? [String(data[f.key])] : []);
       function renderTags() {
         wrap.innerHTML = '';
         tags.forEach((t, i) => {
@@ -398,7 +446,8 @@ function renderMeta(data) {
 
 // ====== Render preview ======
 function renderPreview() {
-  const text = document.getElementById('editor').value;
+  // 预览只渲染正文, 不把 frontmatter 也画出来
+  const text = extractBody(document.getElementById('editor').value);
   const preview = document.getElementById('preview');
   // Simple markdown to HTML conversion
   let html = text
@@ -424,8 +473,19 @@ function renderPreview() {
 // ====== Save ======
 async function saveFile() {
   if (!currentFile) { toast('请先选择文件'); return; }
-  const text = document.getElementById('editor').value;
+  // 统一成 LF, 避免再次写入 CRLF 导致后续解析异常
+  const text = normalizeNewlines(document.getElementById('editor').value);
   const slug = currentFile.split('/').pop().replace(/\.md$/, '').replace(/\.json$/, '');
+  // JSON 配置保存前先校验语法, 避免把写坏的 JSON 落盘导致整站构建失败
+  if (currentFile.endsWith('.json')) {
+    try {
+      JSON.parse(text);
+    } catch (err) {
+      toast('JSON 格式错误, 未保存: ' + (err && err.message ? err.message : err));
+      document.getElementById('statusLeft').textContent = '保存已取消: JSON 格式错误';
+      return;
+    }
+  }
   console.log('[save] path:', currentFile, 'slug:', slug);
   try {
     document.getElementById('btnSave').textContent = '保存中...';
@@ -441,9 +501,13 @@ async function saveFile() {
     toast('已保存');
     document.getElementById('statusLeft').textContent = '已保存: ' + (res?.message || 'ok');
     document.getElementById('statusRight').textContent = currentFile;
+    // 保存后重新载入该文件, 保证编辑器内容与磁盘一致(并刷新标题等元信息)
+    await loadFile(currentCollection, currentFile, currentFile.endsWith('.json'));
+    await loadSidebar();
   } catch(e) {
     console.error('[save] error:', e);
     toast('保存失败: ' + e.message);
+    document.getElementById('statusLeft').textContent = '保存失败: ' + e.message;
   } finally {
     document.getElementById('btnSave').textContent = '保存';
     document.getElementById('btnSave').disabled = false;
@@ -542,7 +606,14 @@ window.syncToRepo = syncToRepo;
 
 // ====== Init ======
 loadSidebar().catch(e => {
-  document.getElementById('sidebar').innerHTML = '<div style="padding:20px;color:red">连接失败: ' + e.message + '<br><br>确认 decap-server 已在端口 8081 运行</div>';
+  const isLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
+  document.getElementById('sidebar').innerHTML =
+    '<div style="padding:20px;color:#c0392b;font-size:13px;line-height:1.8">'
+    + '<b>连接本地后台服务失败</b><br><br>'
+    + (isLocal
+      ? '请先在项目根目录运行 <b>pnpm cms</b>（decap-server 监听 8081 端口），然后刷新本页。<br><br>错误信息：' + e.message
+      : '后台依赖本地文件系统代理，只能在本地开发环境（http://localhost:4321/admin）使用。')
+    + '</div>';
 });
 </script>
 </body>

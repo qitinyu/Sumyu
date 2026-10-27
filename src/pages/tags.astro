@@ -37,7 +37,10 @@ function tagSize(c: number) {
 
     {selectedTag && (
       <div class="tag-results">
-        <h2 class="tag-results__title">标签「{selectedTag}」下的 {filteredPosts.length} 篇文章</h2>
+        <div class="tag-results__head">
+          <h2 class="tag-results__title">标签「{selectedTag}」下的 {filteredPosts.length} 篇文章</h2>
+          <a class="tag-results__back" href="/#home-posts">← 返回首页博文</a>
+        </div>
         <div class="tag-results__list">
           {filteredPosts.map(p => (
             <a class="tag-result-item" href={`/posts/${p.id}/`}>
@@ -78,7 +81,20 @@ function tagSize(c: number) {
     background: var(--bg-soft); padding: 1px 6px; border-radius: 8px;
   }
 
-  .tag-results__title { font-size: 17px; color: var(--text-strong); margin-bottom: 16px; }
+  .tag-results__head {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 10px; margin-bottom: 16px;
+  }
+  .tag-results__title { font-size: 17px; color: var(--text-strong); }
+  .tag-results__back {
+    font-size: 13px; color: var(--text-muted);
+    padding: 5px 12px; border-radius: var(--radius-full);
+    border: 1px solid var(--border-color); transition: all var(--transition-fast);
+  }
+  .tag-results__back:hover {
+    color: var(--sakura-primary); border-color: var(--sakura-primary);
+    background: var(--sakura-primary-bg);
+  }
   .tag-results__list { display: flex; flex-direction: column; gap: 8px; }
   .tag-result-item {
     display: grid; grid-template-columns: 100px 1fr 80px; gap: 14px; align-items: center;

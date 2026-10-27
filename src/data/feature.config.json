@@ -19,7 +19,7 @@
   },
   "music": {
     "enabled": true,
-    "source": "webdav",
+    "source": "netease",
     "api": "https://api.qijieya.cn/meting/",
     "server": "netease",
     "type": "playlist",

@@ -13,9 +13,10 @@ const commentKey = key || Astro.url.pathname;
 // yuamli iframe 的 pageId 参数: 优先使用显式传入的 pageId, 否则用 commentKey
 const yuamliPageId = pageId || commentKey;
 // 拼接 yuamli iframe URL: ?pageId=xxx
-const yuamliBaseUrl = COMMENT.yuamli.url;
+// 本地开发时优先指向本地 yuamli (localhost:3000)，便于预览 embed 新体验；生产走线上地址
+const yuamliBaseUrl = import.meta.env.DEV ? 'http://localhost:3000/' : COMMENT.yuamli.url;
 const yuamliSeparator = yuamliBaseUrl.includes('?') ? '&' : '?';
-const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=' + encodeURIComponent(yuamliPageId);
+const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=' + encodeURIComponent(yuamliPageId) + '&embed=1';
 ---
 
 {COMMENT.enable && (
@@ -58,6 +59,59 @@ const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=' + encodeURICo
 )}
 
 <!-- 客户端脚本: 根据系统加载对应评论 -->
+{COMMENT.enable && COMMENT.system === 'yuamli' && (
+  <script data-astro-rerun>
+    // ---- yuamli 嵌入模式：高度自适应 + 字体/主题同步 ----
+    (function () {
+      const prev = window.__yuamliEmbed;
+      if (prev) {
+        window.removeEventListener('message', prev.onMessage);
+        window.removeEventListener('message', prev.onReady);
+        if (prev.mo) prev.mo.disconnect();
+      }
+
+      const frame = document.getElementById('comment-yuamli-frame');
+      if (!frame) { window.__yuamliEmbed = null; return; }
+
+      const readConfig = () => {
+        const root = document.documentElement;
+        const cs = getComputedStyle(root);
+        const bodyCs = getComputedStyle(document.body);
+        const isDark = root.classList.contains('dark');
+        const accent = (cs.getPropertyValue('--sakura-primary') || '').trim() || '#DF9193';
+        const fontBody = bodyCs.fontFamily || '';
+        return { type: 'yuamli:config', theme: isDark ? 'dark' : 'light', accent, fontBody };
+      };
+
+      const sendConfig = () => {
+        try { frame.contentWindow?.postMessage(readConfig(), '*'); } catch (_) {}
+      };
+
+      const onMessage = (e) => {
+        const d = e.data;
+        if (!d || d.type !== 'yuamli:height') return;
+        const h = parseInt(d.height, 10);
+        if (h > 0) frame.style.height = h + 'px';
+      };
+
+      const onReady = (e) => {
+        if (e.data?.type === 'yuamli:ready' && e.source === frame.contentWindow) {
+          sendConfig();
+        }
+      };
+
+      window.addEventListener('message', onMessage);
+      window.addEventListener('message', onReady);
+
+      // 监听主题 / 主题色切换，重新同步给 iframe
+      const mo = new MutationObserver(sendConfig);
+      mo.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme-color'] });
+
+      window.__yuamliEmbed = { onMessage, onReady, mo };
+    })();
+  </script>
+)}
+
 {COMMENT.enable && COMMENT.system === 'twikoo' && (
   <script data-astro-rerun>
     // ---- 加载 Twikoo ----
@@ -220,13 +274,14 @@ const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=' + encodeURICo
 
   .post-comment__body { min-height: 80px; }
 
-  /* yuamli iframe */
+  /* yuamli iframe（嵌入模式：透明背景 + 高度自适应，视觉与博客融合） */
   .comment-yuamli {
     width: 100%;
-    min-height: 480px;
+    min-height: 120px;
     border: none;
     border-radius: var(--radius-md);
-    background: var(--bg-soft);
+    background: transparent;
+    display: block;
   }
 
   /* twikoo 样式适配 */
@@ -274,6 +329,5 @@ const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=' + encodeURICo
 
   @media (max-width: 768px) {
     .post-comment { padding: 18px 16px; margin-top: 36px; }
-    .comment-yuamli { min-height: 420px; }
   }
 </style>

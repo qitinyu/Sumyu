@@ -115,10 +115,6 @@ const licenseName = post.data.licenseName;
       </div>
     ) : (
       <div class="post-body">
-        <aside class="post-toc" id="post-toc" aria-label="目录">
-          <div class="post-toc__title">目录</div>
-          <nav class="post-toc__nav" id="post-toc-nav"></nav>
-        </aside>
         <div class="post-content-area">
           <div class="prose-sakura">
             <Content />
@@ -154,8 +150,6 @@ const licenseName = post.data.licenseName;
 </Layout>
 
 <script>
-  let postTocObserver = null;
-
   const ALERT_CONFIG = {
     note: { icon: '📌', title: 'NOTE' },
     tip: { icon: '💡', title: 'TIP' },
@@ -168,8 +162,7 @@ const licenseName = post.data.licenseName;
     const article = document.querySelector('.prose-sakura');
     if (!article) return;
 
-    const blockquotes = article.querySelectorAll('blockquote');
-    blockquotes.forEach((blockquote) => {
+    article.querySelectorAll('blockquote').forEach((blockquote) => {
       const firstP = blockquote.querySelector('p:first-child');
       if (!firstP) return;
 
@@ -178,7 +171,7 @@ const licenseName = post.data.licenseName;
       if (!match) return;
 
       const alertType = match[1].toLowerCase();
-      const config = ALERT_CONFIG[alertType];
+      const config = ALERT_CONFIG[alertType as keyof typeof ALERT_CONFIG];
       if (!config) return;
 
       const alertDiv = document.createElement('div');
@@ -215,7 +208,7 @@ const licenseName = post.data.licenseName;
       alertDiv.appendChild(header);
       alertDiv.appendChild(content);
 
-      blockquote.parentNode.replaceChild(alertDiv, blockquote);
+      blockquote.parentNode?.replaceChild(alertDiv, blockquote);
     });
   }
 
@@ -228,95 +221,15 @@ const licenseName = post.data.licenseName;
       if (table.parentElement?.classList.contains('prose-table-wrap')) return;
       const wrap = document.createElement('div');
       wrap.className = 'prose-table-wrap';
-      table.parentNode.insertBefore(wrap, table);
+      table.parentNode?.insertBefore(wrap, table);
       wrap.appendChild(table);
     });
-
-    // ---- 构建目录 ----
-    const article = document.querySelector('.post-body .prose-sakura');
-    const tocNav = document.getElementById('post-toc-nav');
-    const toc = document.getElementById('post-toc');
-    if (postTocObserver) { postTocObserver.disconnect(); postTocObserver = null; }
-    if (article && tocNav) {
-      tocNav.innerHTML = '';
-      toc?.classList.remove('is-hidden');
-      const heads = article.querySelectorAll('h2, h3, h4');
-      if (heads.length < 2) {
-        toc?.classList.add('is-hidden');
-      } else {
-        const ul = document.createElement('ul');
-        heads.forEach((h, i) => {
-          if (!h.id) h.id = `heading-${i}`;
-          const li = document.createElement('li');
-          const level = h.tagName === 'H4' ? 2 : h.tagName === 'H3' ? 1 : 0;
-          if (level > 0) li.classList.add('post-toc__sub');
-          if (level > 1) li.classList.add('post-toc__sub--deep');
-          const a = document.createElement('a');
-          a.href = `#${h.id}`;
-          a.textContent = h.textContent;
-          a.dataset.target = h.id;
-          a.addEventListener('click', (e) => {
-            e.preventDefault();
-            document.getElementById(h.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          });
-          li.appendChild(a);
-          ul.appendChild(li);
-        });
-        tocNav.appendChild(ul);
-
-        // 阅读进度追踪
-        let currentActive = null;
-        const headElements = Array.from(heads);
-        
-        function updateActiveToc() {
-          let activeHeading = null;
-          const scrollPosition = window.scrollY + window.innerHeight / 3;
-          
-          for (let i = headElements.length - 1; i >= 0; i--) {
-            const h = headElements[i];
-            if (h.offsetTop < scrollPosition) {
-              activeHeading = h;
-              break;
-            }
-          }
-          
-          if (currentActive) currentActive.classList.remove('is-active');
-          
-          if (activeHeading) {
-            currentActive = tocNav.querySelector(`a[data-target="${activeHeading.id}"]`);
-            currentActive?.classList.add('is-active');
-            
-            if (currentActive) {
-              const toc = document.getElementById('post-toc');
-              if (toc) {
-                const rect = currentActive.getBoundingClientRect();
-                const tocRect = toc.getBoundingClientRect();
-                const gap = 20;
-                
-                if (rect.top < tocRect.top + gap) {
-                  currentActive.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                } else if (rect.bottom > tocRect.bottom - gap) {
-                  currentActive.scrollIntoView({ behavior: 'smooth', block: 'end' });
-                }
-              }
-            }
-          }
-        }
-        
-        postTocObserver = new IntersectionObserver((entries) => {
-          updateActiveToc();
-        }, { rootMargin: '-50px 0px -60% 0px' });
-        heads.forEach((h) => postTocObserver.observe(h));
-        
-        window.addEventListener('scroll', updateActiveToc, { passive: true });
-      }
-    }
 
     // ---- 加密文章解锁 ----
     const encryptedBlock = document.getElementById('post-encrypted');
     if (encryptedBlock) {
       const unlockBtn = document.getElementById('post-unlock-btn');
-      const pwdInput = document.getElementById('post-password');
+      const pwdInput = document.getElementById('post-password') as HTMLInputElement | null;
       const hint = document.getElementById('post-encrypted-hint');
       const content = document.getElementById('post-encrypted-content');
       const expectedPwd = encryptedBlock.getAttribute('data-pwd') || '';
@@ -344,7 +257,7 @@ const licenseName = post.data.licenseName;
 </script>
 
 <style>
-  .post-detail { max-width: 1100px; margin: 0 auto; padding: 32px 24px 40px; }
+  .post-detail { max-width: 928px; margin: 0 auto; padding: 32px 24px 40px; }
 
   /* 有封面图的头部 */
   .post-header { position: relative; margin-bottom: 32px; border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-md); }
@@ -388,62 +301,9 @@ const licenseName = post.data.licenseName;
   }
   .post-tag:hover { background: var(--sakura-primary); color: #fff; }
 
-  /* 文章主体：左侧TOC + 右侧内容 */
-  .post-body { position: relative; display: grid; grid-template-columns: 1fr; gap: 0; }
-
-  .post-toc {
-    position: sticky; top: calc(var(--navbar-height) + 16px);
-    align-self: start;
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    padding: 20px 16px;
-    max-height: calc(100vh - 200px);
-    overflow-y: auto;
-    font-size: 14px;
-    display: none;
-    order: -1;
-    box-shadow: var(--shadow-sm);
-  }
-  .post-toc__title { font-weight: 600; color: var(--sakura-primary); margin-bottom: 14px; font-size: 15px; }
-
-  :global(.post-toc__nav ul) { display: flex; flex-direction: column; gap: 2px; list-style: none; padding: 0; margin: 0; }
-  :global(.post-toc__nav li) { margin: 0; padding: 0; }
-  :global(.post-toc__nav a) { 
-    color: var(--text-muted); 
-    display: block; 
-    padding: 7px 12px; 
-    border-radius: 6px; 
-    transition: all var(--transition-fast); 
-    font-size: 14px;
-    line-height: 1.5;
-    text-decoration: none;
-  }
-  :global(.post-toc__nav a:hover) { color: var(--sakura-primary); background: var(--sakura-primary-bg); }
-  :global(.post-toc__nav a.is-active) {
-    color: var(--sakura-primary); 
-    font-weight: 600;
-    background: rgba(223, 145, 147, 0.18);
-    border-radius: 6px;
-    box-shadow: inset 3px 0 0 var(--sakura-primary);
-  }
-  :global(.post-toc__sub) { 
-    margin-left: 16px; 
-    border-left: 2px solid var(--sakura-primary-soft); 
-    padding-left: 14px; 
-  }
-  :global(.post-toc__sub--deep) { 
-    margin-left: 32px; 
-    border-left: 2px solid var(--sakura-primary-soft); 
-    padding-left: 14px; 
-  }
-
+  /* 文章主体：单栏正文 */
+  .post-body { position: relative; }
   .post-content-area { min-width: 0; overflow-x: hidden; }
-
-  @media (min-width: 1100px) {
-    .post-body { grid-template-columns: 180px 1fr; gap: 28px; }
-    .post-toc { display: block; }
-  }
 
   /* 上下篇 */
   .post-neighbors {

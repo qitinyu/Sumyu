@@ -4,9 +4,10 @@ import { COMMENT } from '@/config';
 
 // 拾遗页面: 整个页面就是一个独立的 yuamli 留言区
 // pageId='shiyi' 让拾遗的留言与其他页面/文章的留言完全隔离
-const yuamliBaseUrl = COMMENT.yuamli.url;
+// 本地开发时优先指向本地 yuamli (localhost:3000)，便于预览 embed 新体验；生产走线上地址
+const yuamliBaseUrl = import.meta.env.DEV ? 'http://localhost:3000/' : COMMENT.yuamli.url;
 const yuamliSeparator = yuamliBaseUrl.includes('?') ? '&' : '?';
-const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=shiyi';
+const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=shiyi' + '&embed=1';
 ---
 
 <Layout title="拾遗 · 留言板" description="拾遗 · 留下你的足迹">
@@ -61,6 +62,57 @@ const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=shiyi';
     )}
   </div>
 </Layout>
+
+<script data-astro-rerun>
+  // ---- yuamli 嵌入模式：高度自适应 + 字体/主题同步 ----
+  (function () {
+    const prev = window.__shiyiYuamliEmbed;
+    if (prev) {
+      window.removeEventListener('message', prev.onMessage);
+      window.removeEventListener('message', prev.onReady);
+      if (prev.mo) prev.mo.disconnect();
+    }
+
+    const frame = document.getElementById('shiyi-yuamli-frame');
+    if (!frame) { window.__shiyiYuamliEmbed = null; return; }
+
+    const readConfig = () => {
+      const root = document.documentElement;
+      const cs = getComputedStyle(root);
+      const bodyCs = getComputedStyle(document.body);
+      const isDark = root.classList.contains('dark');
+      const accent = (cs.getPropertyValue('--sakura-primary') || '').trim() || '#DF9193';
+      const fontBody = bodyCs.fontFamily || '';
+      return { type: 'yuamli:config', theme: isDark ? 'dark' : 'light', accent, fontBody };
+    };
+
+    const sendConfig = () => {
+      try { frame.contentWindow?.postMessage(readConfig(), '*'); } catch (_) {}
+    };
+
+    const onMessage = (e) => {
+      const d = e.data;
+      if (!d || d.type !== 'yuamli:height') return;
+      const h = parseInt(d.height, 10);
+      if (h > 0) frame.style.height = h + 'px';
+    };
+
+    const onReady = (e) => {
+      if (e.data?.type === 'yuamli:ready' && e.source === frame.contentWindow) {
+        sendConfig();
+      }
+    };
+
+    window.addEventListener('message', onMessage);
+    window.addEventListener('message', onReady);
+
+    // 监听主题 / 主题色切换，重新同步给 iframe
+    const mo = new MutationObserver(sendConfig);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme-color'] });
+
+    window.__shiyiYuamliEmbed = { onMessage, onReady, mo };
+  })();
+</script>
 
 <style>
   .shiyi-page { padding: 32px 24px 40px; max-width: 820px; }
@@ -119,9 +171,10 @@ const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=shiyi';
   }
   .shiyi-comment-frame {
     width: 100%;
-    min-height: 700px;
+    min-height: 120px;
     border: none;
     display: block;
+    background: transparent;
   }
 
   /* 未启用 / 非 yuamli 系统提示 */
@@ -153,6 +206,5 @@ const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=shiyi';
   @media (max-width: 768px) {
     .shiyi-page { padding: 24px 16px 40px; }
     .shiyi-intro__letter { padding: 18px 20px; }
-    .shiyi-comment-frame { min-height: 600px; }
   }
 </style>
