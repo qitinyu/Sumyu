@@ -149,7 +149,7 @@ export const LIVE2D = {
 export const ANNOUNCEMENTS = [
   '欢迎来到 Sumyu 的个人博客！',
   '祝福原神六周年快乐！',
-  'Sumy Music更新至V2.0.7.5,欢迎下载体验！',
+  'MuWan更新至V3.0.6,欢迎下载体验！',
   '博客已经接入萌ICP备20268826号,请放心访问！',
   '祝福铠甲勇士刑天15周年,我们的童年回头看了我一眼！',
 ];

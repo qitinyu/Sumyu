@@ -1,5 +1,5 @@
 ---
-title: SumyMusic-鸿蒙原生多源聚合播放器
+title: MuWan-沐挽:鸿蒙原生多源聚合音乐播放器
 pubDate: 2026-09-14
 description: 一款鸿蒙原生音乐播放器，支持多音源聚合搜索、自建API、WebDAV云盘播放、数据同步等功能
 author: YuQi
@@ -7,12 +7,12 @@ tags: [Harmony]
 comment_id: "260914"
 ---
 
-## Sumy Music（目前支持鸿蒙手机端API24及以上设备）
+## MuWan（目前支持鸿蒙手机端API24及以上设备）
 > 是什么？
 - 你是否遇到过单平台因为歌曲版权而无法播放，不得已在你的设备塞满不同音乐软件的经历？
 - 你是否遇到过因为辛苦下载一堆爱听的音乐，但是非常占据手机空间不得已放入网盘却无法从本地听歌的经历？
-- 所以，他来了：
-- **Sumy Music：** *一款鸿蒙原生音乐播放器，支持多音源聚合搜索、自建API、WebDAV云盘播放、数据同步等功能*
+- 所以，我出手了：
+- **MuWan：** *一款鸿蒙原生音乐播放器，支持多音源聚合搜索、自建API、WebDAV云盘播放、数据同步等功能*
 > 承诺：
 - **无任何收费！无无良广告！无引流弹窗！**
 - **听你想听，回归音乐本质！**
@@ -93,12 +93,12 @@ MIT License
 
 ## 下载体验
 1. 开源仓库：Sumy Music V2.0.6.3
-- [GITHUB](https://github.com/qitinyu/Sumy-Music/)
-- [GITEE](https://gitcode.com/YQAMM/Sumyu)
+- [GITHUB](https://github.com/qitinyu/MuWan/)
+- [GITEE](https://gitcode.com/YQAMM/MuWan)
 >[!tip]
 >由于个人技术有限以及官方限制要求，暂不考虑上架应用市场，随缘邀测，有能力的可自行<a id="one">侧载体验</a>
 2. 完整更新日志：
-- [GITHUB Wiki](https://github.com/qitinyu/Sumy-Music/wiki/)
+- [GITHUB Wiki](https://github.com/qitinyu/MuWan/wiki/)
 3. [侧载教程](#one)
 - [点击查看](https://yqamm.top/posts/harmony/260713hokit/)
 
