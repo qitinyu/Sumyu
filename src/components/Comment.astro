@@ -274,10 +274,11 @@ const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=' + encodeURICo
 
   .post-comment__body { min-height: 80px; }
 
-  /* yuamli iframe（嵌入模式：透明背景 + 高度自适应，视觉与博客融合） */
+  /* yuamli iframe（嵌入模式：透明背景 + 高度自适应，视觉与博客融合）
+     兜底 min-height 600px：即使高度上报未生效，评论框也有足够高度，避免内部滚动条 */
   .comment-yuamli {
     width: 100%;
-    min-height: 120px;
+    min-height: 600px;
     border: none;
     border-radius: var(--radius-md);
     background: transparent;

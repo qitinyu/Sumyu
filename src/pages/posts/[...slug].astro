@@ -115,6 +115,51 @@ const licenseName = post.data.licenseName;
       </div>
     ) : (
       <div class="post-body">
+        <aside class="post-toc" id="post-toc" aria-label="文章目录" hidden>
+          <div class="post-toc__header">
+            <span class="post-toc__title">
+              <iconify-icon icon="mdi:format-list-bulleted" aria-hidden="true"></iconify-icon>
+              目录
+            </span>
+            <div class="post-toc__actions">
+              <button type="button" class="post-toc__settings" id="post-toc-settings-btn" aria-label="目录设置" aria-expanded="false">
+                <iconify-icon icon="mdi:cog-outline" aria-hidden="true"></iconify-icon>
+              </button>
+              <button type="button" class="post-toc__toggle" id="post-toc-toggle" aria-label="折叠目录">
+                <iconify-icon icon="mdi:chevron-up" aria-hidden="true"></iconify-icon>
+              </button>
+            </div>
+          </div>
+
+          <div class="post-toc__settings-panel" id="post-toc-settings-panel" hidden>
+            <label class="post-toc__setting">
+              <span class="post-toc__setting-text">展示目录</span>
+              <span class="post-toc__switch">
+                <input type="checkbox" id="toc-setting-show">
+                <span class="post-toc__switch-track"></span>
+              </span>
+            </label>
+            <label class="post-toc__setting">
+              <span class="post-toc__setting-text">移动端不展示在顶部</span>
+              <span class="post-toc__switch">
+                <input type="checkbox" id="toc-setting-mobile">
+                <span class="post-toc__switch-track"></span>
+              </span>
+            </label>
+            <div class="post-toc__setting">
+              <span class="post-toc__setting-text">展示层级</span>
+              <div class="post-toc__levels" id="toc-setting-levels">
+                <button type="button" data-level="1">1</button>
+                <button type="button" data-level="2">2</button>
+                <button type="button" data-level="3">3</button>
+                <button type="button" data-level="4">4</button>
+              </div>
+            </div>
+          </div>
+
+          <nav class="post-toc__nav" id="post-toc-nav"></nav>
+        </aside>
+
         <div class="post-content-area">
           <div class="prose-sakura">
             <Content />
@@ -212,9 +257,320 @@ const licenseName = post.data.licenseName;
     });
   }
 
+  let postTocCleanup = null;
+
+  // ---- 目录设置：localStorage 持久化 ----
+  const TOC_SETTINGS_KEY = 'sumyu-toc-settings';
+  const TOC_SETTINGS_DEFAULT = { show: true, mobileCollapse: false, maxLevel: 4 };
+
+  function loadTocSettings() {
+    try {
+      const raw = localStorage.getItem(TOC_SETTINGS_KEY);
+      if (!raw) return { ...TOC_SETTINGS_DEFAULT };
+      const parsed = JSON.parse(raw);
+      return {
+        show: typeof parsed.show === 'boolean' ? parsed.show : TOC_SETTINGS_DEFAULT.show,
+        mobileCollapse: typeof parsed.mobileCollapse === 'boolean' ? parsed.mobileCollapse : TOC_SETTINGS_DEFAULT.mobileCollapse,
+        maxLevel: [1, 2, 3, 4].includes(parsed.maxLevel) ? parsed.maxLevel : TOC_SETTINGS_DEFAULT.maxLevel,
+      };
+    } catch {
+      return { ...TOC_SETTINGS_DEFAULT };
+    }
+  }
+
+  function saveTocSettings(settings) {
+    try { localStorage.setItem(TOC_SETTINGS_KEY, JSON.stringify(settings)); } catch {}
+  }
+
+  function syncTocSettingsUI(settings) {
+    const showInput = document.getElementById('toc-setting-show');
+    const mobileInput = document.getElementById('toc-setting-mobile');
+    const levelsBox = document.getElementById('toc-setting-levels');
+    if (showInput) showInput.checked = settings.show;
+    if (mobileInput) mobileInput.checked = settings.mobileCollapse;
+    if (levelsBox) {
+      levelsBox.querySelectorAll('button').forEach((b) => {
+        b.classList.toggle('is-active', parseInt(b.dataset.level || '0', 10) === settings.maxLevel);
+      });
+    }
+  }
+
+  function updateToggleIcon() {
+    const toc = document.getElementById('post-toc');
+    const toggle = document.getElementById('post-toc-toggle');
+    if (!toc || !toggle) return;
+    const collapsed = toc.classList.contains('is-collapsed');
+    toggle.setAttribute('aria-label', collapsed ? '展开目录' : '折叠目录');
+    toggle.querySelector('iconify-icon')?.setAttribute('icon', collapsed ? 'mdi:chevron-down' : 'mdi:chevron-up');
+  }
+
+  // ---- 构建文章目录（标题 + 列表项，多级缩进，支持设置） ----
+  function buildToc() {
+    if (postTocCleanup) { postTocCleanup(); postTocCleanup = null; }
+
+    const article = document.querySelector('.post-body .prose-sakura');
+    const toc = document.getElementById('post-toc');
+    const tocNav = document.getElementById('post-toc-nav');
+    const toggle = document.getElementById('post-toc-toggle');
+    if (!article || !toc || !tocNav) return;
+
+    const settings = loadTocSettings();
+    syncTocSettingsUI(settings);
+    bindTocSettings();
+
+    // 提取目录项：h2/h3/h4 标题 + 有序/无序列表项，按文档顺序
+    // 深度 depth：1=## / 2=### / 3=有序列表 / 4=无序列表（嵌套逐级 +1），每小一级缩进 2 字符
+    const liTitle = (li) => {
+      let text = '';
+      for (const child of li.childNodes) {
+        if (child.nodeType === Node.TEXT_NODE) {
+          text += child.textContent;
+        } else if (child.nodeType === Node.ELEMENT_NODE && child.tagName !== 'UL' && child.tagName !== 'OL') {
+          text += child.textContent;
+        }
+      }
+      return text.replace(/\s+/g, ' ').trim();
+    };
+
+    const items = [];
+    let headingDepth = 0;
+    const walker = document.createTreeWalker(article, NodeFilter.SHOW_ELEMENT);
+    let node;
+    while ((node = walker.nextNode())) {
+      const tag = node.tagName;
+      if (tag === 'H2') {
+        headingDepth = 1;
+        items.push({ el: node, depth: 1, text: node.textContent.replace(/\s+/g, ' ').trim() });
+      } else if (tag === 'H3') {
+        headingDepth = 2;
+        items.push({ el: node, depth: 2, text: node.textContent.replace(/\s+/g, ' ').trim() });
+      } else if (tag === 'H4') {
+        headingDepth = 3;
+        items.push({ el: node, depth: 3, text: node.textContent.replace(/\s+/g, ' ').trim() });
+      } else if (tag === 'LI') {
+        let listDepth = 0;
+        let p = node;
+        while (p) {
+          const pt = p.tagName;
+          if (pt === 'UL' || pt === 'OL') listDepth++;
+          p = p.parentElement;
+        }
+        const text = liTitle(node);
+        if (!text) continue;
+        items.push({ el: node, depth: headingDepth + listDepth, text });
+      }
+    }
+
+    // 按"展示层级"过滤
+    const visible = items.filter((it) => it.depth <= settings.maxLevel);
+
+    // 展示目录开关：关闭时只保留标题栏（含设置入口），隐藏导航与折叠按钮
+    const off = !settings.show;
+    toc.classList.toggle('toc-off', off);
+    toc.hidden = !off && visible.length < 2;
+
+    tocNav.innerHTML = '';
+    if (visible.length > 0) {
+      const ul = document.createElement('ul');
+      visible.forEach((item, i) => {
+        const el = item.el;
+        if (!el.id) el.id = `toc-${i}`;
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = `#${el.id}`;
+        a.textContent = item.text.length > 48 ? item.text.slice(0, 48) + '…' : item.text;
+        a.title = item.text;
+        a.dataset.target = el.id;
+        // 每小一级缩进两字符：目录字号 14px，1em ≈ 1 个中文字符宽度
+        a.style.paddingLeft = `calc(10px + ${(item.depth - 1) * 2}em)`;
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          const target = document.getElementById(el.id);
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            history.replaceState(null, '', `#${el.id}`);
+          }
+        });
+        li.appendChild(a);
+        ul.appendChild(li);
+      });
+      tocNav.appendChild(ul);
+    }
+
+    // 移动端不展示在顶部：开启后，移动端目录默认折叠收起
+    const isMobile = window.matchMedia('(max-width: 1099px)').matches;
+    toc.classList.toggle('is-collapsed', !!(settings.mobileCollapse && isMobile));
+    updateToggleIcon();
+
+    // 阅读进度高亮（只高亮当前章节，不做容器内自动滚动，避免抖动）
+    let currentActive = null;
+    const setActive = (id) => {
+      if (currentActive === id) return;
+      if (currentActive) {
+        tocNav.querySelector(`a[data-target="${currentActive}"]`)?.classList.remove('is-active');
+      }
+      currentActive = id;
+      tocNav.querySelector(`a[data-target="${id}"]`)?.classList.add('is-active');
+    };
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((en) => { if (en.isIntersecting) setActive(en.target.id); });
+    }, { rootMargin: '-60px 0px -70% 0px', threshold: 0 });
+    visible.forEach((item) => io.observe(item.el));
+
+    // 折叠 / 展开
+    const onToggle = () => {
+      toc.classList.toggle('is-collapsed');
+      updateToggleIcon();
+    };
+    toggle?.addEventListener('click', onToggle);
+
+    postTocCleanup = () => {
+      io.disconnect();
+      toggle?.removeEventListener('click', onToggle);
+    };
+  }
+
+  // ---- 目录设置面板交互 ----
+  // 把面板贴到设置按钮正下方（fixed 定位，由 JS 计算坐标）
+  function positionTocSettingsPanel() {
+    const panel = document.getElementById('post-toc-settings-panel');
+    const btn = document.getElementById('post-toc-settings-btn');
+    if (!panel || !btn || panel.hidden) return;
+
+    const r = btn.getBoundingClientRect();
+    const gap = 6;
+    const margin = 8;
+    const vw = document.documentElement.clientWidth;
+    const vh = document.documentElement.clientHeight;
+    const pw = panel.offsetWidth;
+    const ph = panel.offsetHeight;
+
+    // 右边缘与按钮右边缘对齐，向左展开（放不下时贴边）
+    let left = r.right - pw;
+    if (left < margin) left = margin;
+    if (left + pw > vw - margin) left = vw - margin - pw;
+
+    // 正下方；下方空间不足时翻到按钮上方
+    let top = r.bottom + gap;
+    if (top + ph > vh - margin) {
+      const above = r.top - gap - ph;
+      top = above >= margin ? above : Math.max(margin, vh - margin - ph);
+    }
+
+    panel.style.left = `${Math.round(left)}px`;
+    panel.style.top = `${Math.round(top)}px`;
+  }
+
+  function closeTocSettings() {
+    const panel = document.getElementById('post-toc-settings-panel');
+    const btn = document.getElementById('post-toc-settings-btn');
+    if (!panel || panel.hidden) return;
+    panel.hidden = true;
+    btn?.setAttribute('aria-expanded', 'false');
+    // 归还到目录栏里，避免挂载在 body 上跨页残留
+    if (panel.parentElement === document.body) {
+      const toc = document.getElementById('post-toc');
+      const nav = document.getElementById('post-toc-nav');
+      if (toc) toc.insertBefore(panel, nav && nav.parentElement === toc ? nav : null);
+    }
+  }
+
+  function openTocSettings() {
+    const panel = document.getElementById('post-toc-settings-panel');
+    const btn = document.getElementById('post-toc-settings-btn');
+    if (!panel) return;
+    // 目录栏（sticky）自成层叠上下文，面板留在里面会被看板娘等浮层压住；
+    // 打开时挂到 body 上，保证面板永远浮在最上层
+    if (panel.parentElement !== document.body) {
+      document.body.appendChild(panel);
+    }
+    panel.hidden = false;
+    positionTocSettingsPanel();
+    btn?.setAttribute('aria-expanded', 'true');
+  }
+
+  // 点击任意位置关闭（capture 阶段，避免被内部元素的 stopPropagation 拦掉）
+  function setupTocSettings() {
+    document.addEventListener(
+      'pointerdown',
+      (e) => {
+        const panel = document.getElementById('post-toc-settings-panel');
+        const btn = document.getElementById('post-toc-settings-btn');
+        if (!panel || panel.hidden) return;
+        const t = e.target;
+        if (!(t instanceof Node)) return;
+        if (btn?.contains(t) || panel.contains(t)) return;
+        closeTocSettings();
+      },
+      true
+    );
+
+    // 页面滚动/窗口尺寸变化时跟随按钮重新定位
+    const reposition = () => {
+      const panel = document.getElementById('post-toc-settings-panel');
+      if (panel && !panel.hidden) positionTocSettingsPanel();
+    };
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
+
+    // Esc 关闭
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeTocSettings();
+    });
+  }
+
+  // 直接绑定设置项（用 on* 赋值，每次 buildToc 覆盖，避免重复监听）
+  function bindTocSettings() {
+    const settingsBtn = document.getElementById('post-toc-settings-btn');
+    const panel = document.getElementById('post-toc-settings-panel');
+    const showInput = document.getElementById('toc-setting-show');
+    const mobileInput = document.getElementById('toc-setting-mobile');
+    const levelsBox = document.getElementById('toc-setting-levels');
+
+    if (settingsBtn && panel) {
+      settingsBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (panel.hidden) openTocSettings();
+        else closeTocSettings();
+      };
+    }
+    if (showInput) {
+      showInput.onchange = () => {
+        const s = loadTocSettings();
+        s.show = showInput.checked;
+        saveTocSettings(s);
+        buildToc();
+      };
+    }
+    if (mobileInput) {
+      mobileInput.onchange = () => {
+        const s = loadTocSettings();
+        s.mobileCollapse = mobileInput.checked;
+        saveTocSettings(s);
+        buildToc();
+      };
+    }
+    if (levelsBox) {
+      levelsBox.onclick = (e) => {
+        const t = e.target;
+        if (!(t instanceof Element)) return;
+        const b = t.closest('button');
+        if (!b) return;
+        const lv = parseInt(b.dataset.level || '4', 10);
+        const s = loadTocSettings();
+        s.maxLevel = lv;
+        saveTocSettings(s);
+        buildToc();
+      };
+    }
+  }
+
   function initPostDetail() {
     // ---- 处理 GitHub Alerts ----
     processGithubAlerts();
+
+    // ---- 构建目录 ----
+    buildToc();
 
     // ---- 表格横向滚动 ----
     document.querySelectorAll('.prose-sakura table').forEach((table) => {
@@ -253,6 +609,7 @@ const licenseName = post.data.licenseName;
     }
   }
   initPostDetail();
+  setupTocSettings();
   document.addEventListener('astro:page-load', initPostDetail);
 </script>
 
@@ -301,9 +658,121 @@ const licenseName = post.data.licenseName;
   }
   .post-tag:hover { background: var(--sakura-primary); color: #fff; }
 
-  /* 文章主体：单栏正文 */
-  .post-body { position: relative; }
+  /* 文章主体：桌面端左侧目录 + 右侧内容，移动端单栏 */
+  .post-body { position: relative; display: grid; grid-template-columns: 1fr; }
   .post-content-area { min-width: 0; overflow-x: hidden; }
+
+  /* 文章目录：桌面端左侧 sticky 栏，移动端内联卡片（折叠式） */
+  .post-toc {
+    margin: 0 0 28px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    box-shadow: var(--shadow-sm);
+  }
+  .post-toc__header {
+    position: relative;
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .post-toc__title {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-weight: 600; font-size: 15px; color: var(--sakura-primary);
+  }
+  .post-toc__title iconify-icon { font-size: 18px; }
+  .post-toc__actions { display: inline-flex; align-items: center; gap: 2px; }
+  .post-toc__toggle,
+  .post-toc__settings {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 6px;
+    color: var(--text-muted); background: transparent;
+    transition: all var(--transition-fast);
+  }
+  .post-toc__toggle:hover,
+  .post-toc__settings:hover,
+  .post-toc__settings[aria-expanded="true"] { color: var(--sakura-primary); background: var(--sakura-primary-bg); }
+
+  /* 目录设置面板：fixed 定位，由 JS 挂在设置按钮正下方（不受目录 overflow 裁剪） */
+  .post-toc__settings-panel {
+    position: fixed; top: 0; left: 0; z-index: 1000;
+    width: 224px; padding: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+  }
+  .post-toc__setting {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; padding: 6px 8px;
+  }
+  .post-toc__setting + .post-toc__setting { border-top: 1px solid var(--border-color); }
+  .post-toc__setting-text { font-size: 13px; color: var(--text-base); }
+  .post-toc__switch { position: relative; display: inline-block; width: 36px; height: 20px; flex-shrink: 0; }
+  .post-toc__switch input {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    margin: 0; opacity: 0; cursor: pointer; z-index: 1;
+  }
+  .post-toc__switch-track {
+    position: absolute; inset: 0; border-radius: 999px;
+    background: var(--border-color); transition: background var(--transition-fast);
+  }
+  .post-toc__switch-track::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #fff; transition: transform var(--transition-fast);
+  }
+  .post-toc__switch input:checked + .post-toc__switch-track { background: var(--sakura-primary); }
+  .post-toc__switch input:checked + .post-toc__switch-track::after { transform: translateX(16px); }
+  .post-toc__levels { display: inline-flex; gap: 4px; }
+  .post-toc__levels button {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 24px; border-radius: 6px;
+    font-size: 13px; color: var(--text-muted); background: transparent;
+    transition: all var(--transition-fast);
+  }
+  .post-toc__levels button:hover { color: var(--sakura-primary); background: var(--sakura-primary-bg); }
+  .post-toc__levels button.is-active { color: #fff; background: var(--sakura-primary); }
+  :global(.post-toc__nav ul) { display: flex; flex-direction: column; gap: 2px; list-style: none; padding: 0; margin: 0; }
+  :global(.post-toc__nav li) { margin: 0; padding: 0; }
+  :global(.post-toc__nav a) {
+    display: block; padding: 6px 10px; border-radius: 6px;
+    color: var(--text-base); font-size: 14px; line-height: 1.5;
+    text-decoration: none; transition: all var(--transition-fast);
+  }
+  :global(.post-toc__nav a:hover) { color: var(--sakura-primary); background: var(--sakura-primary-bg); }
+  :global(.post-toc__nav a.is-active) {
+    color: var(--sakura-primary); font-weight: 600;
+    background: rgba(223, 145, 147, 0.14);
+    box-shadow: inset 3px 0 0 var(--sakura-primary);
+  }
+  .post-toc.is-collapsed .post-toc__nav { display: none; }
+  /* 展示目录关闭：隐藏导航与折叠按钮，仅保留标题栏（含设置入口） */
+  .post-toc.toc-off .post-toc__nav,
+  .post-toc.toc-off .post-toc__toggle { display: none; }
+
+  /* 桌面端：目录固定在文章左侧，滚动时跟随 */
+  @media (min-width: 1100px) {
+    /* 有目录时容器加宽、正文与目录并排；无目录保持单栏（用 :has 直接判断目录是否可见，不额外加 class） */
+    .post-detail:has(.post-toc:not([hidden])) { max-width: 1080px; }
+    .post-body:has(.post-toc:not([hidden])) { grid-template-columns: 260px minmax(0, 1fr); gap: 32px; }
+    .post-toc {
+      position: sticky; top: calc(var(--navbar-height) + 16px);
+      align-self: start;
+      margin: 0;
+      padding: 14px 16px;
+      max-height: calc(100vh - var(--navbar-height) - 40px);
+      overflow-y: auto;
+    }
+  }
+
+  /* 标题/列表项锚点滚动偏移，避免点击跳转后被导航栏遮挡 */
+  :global(.prose-sakura h2),
+  :global(.prose-sakura h3),
+  :global(.prose-sakura h4),
+  :global(.prose-sakura li) {
+    scroll-margin-top: calc(var(--navbar-height, 64px) + 16px);
+  }
 
   /* 上下篇 */
   .post-neighbors {
