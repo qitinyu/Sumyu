@@ -1,71 +1,14 @@
 import { defineConfig } from 'astro/config';
 import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
-import { spawn } from 'node:child_process';
-import fs from 'node:fs';
-import path from 'node:path';
 import { Readable } from 'node:stream';
-import { fileURLToPath } from 'node:url';
 import remarkReadingTime from './src/plugins/remark-reading-time.mjs';
 import remarkSpoiler from './src/plugins/remark-spoiler.mjs';
 import rehypeAlerts from './src/plugins/rehype-alerts.mjs';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// ========== 开发模式同步插件 ==========
-// POST /api/sync → 执行 scripts/sync-to-repo.mjs 同步到正式仓库
-// 仅在 astro dev 下生效 (apply: 'serve')，生产构建不受影响
-// 目标仓库可用环境变量 SUMYU_REPO_PATH 覆盖，默认 D:\YQ\Sumyu
-function sumyuDevSyncPlugin() {
-  return {
-    name: 'sumyu-dev-sync',
-    apply: 'serve',
-    configureServer(server) {
-      let running = false;
-      server.middlewares.use('/api/sync', (req, res) => {
-        res.setHeader('Content-Type', 'application/json');
-        if (req.method !== 'POST') {
-          res.statusCode = 404;
-          res.end(JSON.stringify({ success: false, error: 'not found' }));
-          return;
-        }
-        if (running) {
-          res.statusCode = 429;
-          res.end(JSON.stringify({ success: false, error: '同步正在进行中，请稍候' }));
-          return;
-        }
-        const target = process.env.SUMYU_REPO_PATH || 'D:\\YQ\\Sumyu';
-        running = true;
-        const child = spawn(process.execPath, [path.join(__dirname, 'scripts', 'sync-to-repo.mjs'), target], {
-          cwd: __dirname,
-          stdio: ['ignore', 'pipe', 'pipe'],
-        });
-        let stdout = '';
-        let stderr = '';
-        child.stdout.on('data', (d) => { stdout += d.toString(); });
-        child.stderr.on('data', (d) => { stderr += d.toString(); });
-        child.on('error', (err) => {
-          running = false;
-          res.statusCode = 500;
-          res.end(JSON.stringify({ success: false, error: err.message }));
-        });
-        child.on('close', (code) => {
-          running = false;
-          if (code === 0) {
-            res.statusCode = 200;
-            res.end(JSON.stringify({ success: true, stdout, stderr }));
-          } else {
-            res.statusCode = 500;
-            res.end(JSON.stringify({ success: false, error: stderr.trim() || `同步脚本退出码 ${code}`, stdout, stderr }));
-          }
-        });
-      });
-    },
-  };
-}
+import { MUSIC } from './src/config.ts';
 
 // ========== 开发模式 WebDAV 同源代理 ==========
-// /webdav/* → 转发到 feature.config.json 里 music.webdav.url 对应的 WebDAV 服务
+// /webdav/* → 转发到 src/config.ts 里 MUSIC.webdav.url 对应的 WebDAV 服务
 // 坚果云等 WebDAV 服务不带 CORS 头, 浏览器无法直连, 必须经同源代理
 // 鉴权在服务端注入 (凭据不暴露给页面), 并剥离坚果云返回的 Content-Disposition: attachment
 // (否则 <audio> 会触发浏览器下载而不是播放)
@@ -77,15 +20,13 @@ function sumyuWebdavProxyPlugin() {
     configureServer(server) {
       server.middlewares.use('/webdav', async (req, res) => {
         try {
-          // 每次请求时读取配置, 后台改完 feature.config.json 无需重启 dev
-          const cfgPath = path.join(__dirname, 'src', 'data', 'feature.config.json');
-          const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
-          const wd = (cfg && cfg.music && cfg.music.webdav) || {};
+          // 从中央配置 src/config.ts 读取 MUSIC.webdav
+          const wd = (MUSIC && MUSIC.webdav) || {};
           const upstream = String(wd.url || '').replace(/\/+$/, '');
           if (!upstream || !wd.username) {
             res.statusCode = 500;
             res.setHeader('Content-Type', 'application/json; charset=utf-8');
-            res.end(JSON.stringify({ error: 'feature.config.json 未配置 music.webdav.url / username' }));
+            res.end(JSON.stringify({ error: 'config.ts 未配置 MUSIC.webdav.url / username' }));
             return;
           }
           const u = new URL(upstream);
@@ -163,6 +104,6 @@ export default defineConfig({
   },
 
   vite: {
-    plugins: [sumyuDevSyncPlugin(), sumyuWebdavProxyPlugin()],
+    plugins: [sumyuWebdavProxyPlugin()],
   },
 });
