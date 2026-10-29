@@ -3,10 +3,11 @@ import Layout from '@layouts/Layout.astro';
 import { COMMENT } from '@/config';
 
 // 留言板页面: 不传 pageId, 显示全站留言 (pageId=default)
-// 拼接 yuamli iframe URL (不带 pageId 参数, yuamli 会返回所有留言)
-const yuamliBaseUrl = COMMENT.yuamli.url;
+// 拼接 yuamli iframe URL: pageId=default + embed=1（嵌入模式：透明背景、去内边距、高度自适应）
+// 本地开发时优先指向本地 yuamli (localhost:3000)，生产走线上地址
+const yuamliBaseUrl = import.meta.env.DEV ? 'http://localhost:3000/' : COMMENT.yuamli.url;
 const yuamliSeparator = yuamliBaseUrl.includes('?') ? '&' : '?';
-const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=default';
+const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=default&embed=1';
 ---
 
 <Layout title="留言" description="留下你的足迹">
@@ -39,6 +40,75 @@ const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=default';
   </div>
 </Layout>
 
+{/* yuamli iframe 宿主侧：高度自适应（只跟内容高度，不按视口补高）+ 主题/字体同步。
+    注意：Astro 不会打包这里带 import 的脚本，逻辑只能内联（与 components/Comment.astro 保持一致）。 */}
+<script data-astro-rerun>
+  (function () {
+    var FRAME_ID = "comment-board-frame";
+    var MIN_H = 250; // 高度下限：加载中/内容瞬间为空时别把 iframe 压成一条缝
+    var prev = window.__yuamliEmbed;
+    if (prev) {
+      window.removeEventListener("message", prev.onMessage);
+      window.removeEventListener("message", prev.onReady);
+      window.removeEventListener("orientationchange", prev.onResize);
+      window.removeEventListener("resize", prev.onResize);
+      prev.mo.disconnect();
+    }
+
+    var frame = document.getElementById(FRAME_ID);
+    if (!frame) { window.__yuamliEmbed = null; return; }
+
+    // ---- 明暗主题 / 强调色 / 正文字体 推给 iframe ----
+    var readConfig = function () {
+      var root = document.documentElement;
+      var cs = getComputedStyle(root);
+      var isDark = root.classList.contains("dark");
+      var accent = (cs.getPropertyValue("--sakura-primary") || "").trim() || "#DF9193";
+      var fontBody = getComputedStyle(document.body).fontFamily || "";
+      return { type: "yuamli:config", theme: isDark ? "dark" : "light", accent: accent, fontBody: fontBody };
+    };
+    var sendConfig = function () {
+      try { frame.contentWindow.postMessage(readConfig(), "*"); } catch (e) { /* 跨域异常忽略 */ }
+    };
+
+    // ---- 高度策略 ----
+    // 只跟随 iframe 上报的内容高度，不再按"剩余视口高度"补满，且允许变矮。
+    // 真实高度到手前由 CSS 的 min-height 兜底；到手后打 data-measured 撤掉兜底，避免底部留白。
+    var contentHeight = 0;
+    var appliedHeight = 0;
+    var applyHeight = function () {
+      if (!contentHeight || contentHeight === appliedHeight) return;
+      appliedHeight = contentHeight;
+      frame.style.height = Math.max(contentHeight, MIN_H) + "px";
+      frame.dataset.measured = "1";
+    };
+    var onMessage = function (e) {
+      var d = e.data;
+      if (!d || d.type !== "yuamli:height") return;
+      var h = parseInt(d.height, 10);
+      if (h > 0) { contentHeight = h; applyHeight(); }
+    };
+    var onReady = function (e) {
+      if (e.data && e.data.type === "yuamli:ready" && e.source === frame.contentWindow) sendConfig();
+    };
+    // 窗口尺寸变化：iframe 宽度变了内容会重排，yuamli 会重新上报；这里只清掉已应用值，避免闪烁
+    var onResize = function () { appliedHeight = 0; };
+
+    window.addEventListener("message", onMessage);
+    window.addEventListener("message", onReady);
+    window.addEventListener("orientationchange", onResize);
+    window.addEventListener("resize", onResize);
+    if (document.readyState === "complete") applyHeight();
+    else window.addEventListener("load", function () { applyHeight(); }, { once: true });
+
+    // 主题 / 主题色切换后重新同步给 iframe
+    var mo = new MutationObserver(sendConfig);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-theme-color"] });
+
+    window.__yuamliEmbed = { onMessage: onMessage, onReady: onReady, onResize: onResize, mo: mo };
+  })();
+</script>
+
 <style>
   .comment-page { padding: 32px 24px 40px; max-width: 820px; }
   .page-header { margin-bottom: 28px; text-align: center; }
@@ -46,20 +116,24 @@ const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=default';
   .page-header__title iconify-icon { color: var(--sakura-primary); }
   .page-header__subtitle { color: var(--text-muted); font-size: 13px; margin-top: 8px; }
 
-  /* yuamli iframe 留言板 */
+  /* yuamli iframe 留言板（嵌入模式：yuamli 自身去掉内边距，卡片内留白由这里补） */
   .comment-yuamli-wrap {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     overflow: hidden;
     box-shadow: var(--shadow-sm);
+    padding: 24px 28px;
   }
   .comment-yuamli {
     width: 100%;
+    /* 兜底高度：仅在 iframe 还没上报真实内容高度时生效 */
     min-height: 600px;
     border: none;
     display: block;
   }
+  /* 已收到 yuamli 上报的高度：撤掉兜底，高度完全跟内容走 */
+  .comment-yuamli[data-measured='1'] { min-height: 0; }
 
   .comment-envelope {
     background: var(--sakura-primary-bg);
@@ -82,6 +156,7 @@ const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=default';
 
   @media (max-width: 768px) {
     .comment-page { padding: 24px 16px 40px; }
+    .comment-yuamli-wrap { padding: 16px; }
     .comment-yuamli { min-height: 500px; }
   }
 </style>
