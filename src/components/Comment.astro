@@ -67,6 +67,7 @@ const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=' + encodeURICo
       if (prev) {
         window.removeEventListener('message', prev.onMessage);
         window.removeEventListener('message', prev.onReady);
+        window.removeEventListener('orientationchange', prev.onResize);
         if (prev.mo) prev.mo.disconnect();
       }
 
@@ -87,12 +88,50 @@ const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=' + encodeURICo
         try { frame.contentWindow?.postMessage(readConfig(), '*'); } catch (_) {}
       };
 
+      // ---- 高度策略 ----
+      // iframe 会通过 postMessage 上报自身内容高度; 移动端若评论区本身就在首屏附近
+      // (页面内容较少的情况), 就把 iframe 撑满剩余视口高度, 避免屏幕下方一大片留白。
+      let contentHeight = 0; // iframe 上报的内容高度
+      let appliedHeight = 0; // 当前已应用的高度
+
+      const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+
+      // 撑满"当前视口"里属于评论区的剩余高度:
+      // - 评论区已在视野内(页面内容少 / 直接滚到评论区), 就补足到屏幕底部
+      // - 评论区还在视口下方很远, 返回 0, 保持原来的内容高度
+      const fillHeight = () => {
+        const viewportH = document.documentElement.clientHeight || window.innerHeight;
+        const top = frame.getBoundingClientRect().top;
+        if (top > viewportH * 0.6) return 0;
+        return Math.round(viewportH - Math.max(top, 0) - 24); // 底部留 24px 呼吸空间
+      };
+
+      const applyHeight = () => {
+        if (!contentHeight) return;
+        let target = contentHeight;
+        if (isMobile()) {
+          const fill = fillHeight();
+          // 只有剩余空间比内容更高时才撑开; 长文章里评论还在屏幕下方时不会生效
+          if (fill > target) target = fill;
+        }
+        if (target !== appliedHeight) {
+          appliedHeight = target;
+          frame.style.height = target + 'px';
+        }
+      };
+
       const onMessage = (e) => {
         const d = e.data;
         if (!d || d.type !== 'yuamli:height') return;
         const h = parseInt(d.height, 10);
-        if (h > 0) frame.style.height = h + 'px';
+        if (h > 0) {
+          contentHeight = h;
+          applyHeight();
+        }
       };
+
+      // 横竖屏切换后可用高度会变, 重新计算一次
+      const onResize = () => applyHeight();
 
       const onReady = (e) => {
         if (e.data?.type === 'yuamli:ready' && e.source === frame.contentWindow) {
@@ -102,12 +141,19 @@ const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=' + encodeURICo
 
       window.addEventListener('message', onMessage);
       window.addEventListener('message', onReady);
+      window.addEventListener('orientationchange', onResize);
+      // 图片/字体加载完成后布局会变, 再校准一次
+      if (document.readyState === 'complete') {
+        applyHeight();
+      } else {
+        window.addEventListener('load', applyHeight, { once: true });
+      }
 
       // 监听主题 / 主题色切换，重新同步给 iframe
       const mo = new MutationObserver(sendConfig);
       mo.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme-color'] });
 
-      window.__yuamliEmbed = { onMessage, onReady, mo };
+      window.__yuamliEmbed = { onMessage, onReady, onResize, mo };
     })();
   </script>
 )}
