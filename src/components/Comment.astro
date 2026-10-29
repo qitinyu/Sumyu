@@ -67,6 +67,8 @@ const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=' + encodeURICo
       if (prev) {
         window.removeEventListener('message', prev.onMessage);
         window.removeEventListener('message', prev.onReady);
+        window.removeEventListener('orientationchange', prev.onResize);
+        window.removeEventListener('resize', prev.onResize);
         if (prev.mo) prev.mo.disconnect();
       }
 
@@ -87,12 +89,37 @@ const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=' + encodeURICo
         try { frame.contentWindow?.postMessage(readConfig(), '*'); } catch (_) {}
       };
 
+      // ---- 高度策略 ----
+      // 只用 iframe 上报的内容高度，不再把"剩余视口高度"补上。
+      // （之前移动端会按 视口 - iframe顶部 强行撑满，内容少时下方留一大块空白。）
+      // 上报未到达前由 CSS 的 min-height:600px 兜底；一旦拿到真实高度，就完全交给内容决定。
+      let contentHeight = 0; // iframe 上报的内容高度
+      let appliedHeight = 0; // 当前已应用的高度
+
+      const applyHeight = (allowShrink = true) => {
+        if (!contentHeight) return;
+        if (!allowShrink && contentHeight < appliedHeight) return;
+        if (contentHeight === appliedHeight) return;
+        appliedHeight = contentHeight;
+        // 250px 下限：避免极端情况（加载中/内容瞬间为空）把 iframe 压成一条缝
+        frame.style.height = Math.max(contentHeight, 250) + 'px';
+        // 真实高度到手后去掉 600px 兜底，避免内容不足 600px 时底部留白
+        frame.dataset.measured = '1';
+      };
+
       const onMessage = (e) => {
         const d = e.data;
         if (!d || d.type !== 'yuamli:height') return;
         const h = parseInt(d.height, 10);
-        if (h > 0) frame.style.height = h + 'px';
+        if (h > 0) {
+          contentHeight = h;
+          applyHeight();
+        }
       };
+
+      // 横竖屏切换 / 窗口尺寸变化：iframe 宽度变了内容会重排，yuamli 会重新上报新高度，
+      // 这里只清掉「已应用高度」的记录，让下一次上报一定生效（不主动清空高度，避免闪烁）
+      const onResize = () => { appliedHeight = 0; };
 
       const onReady = (e) => {
         if (e.data?.type === 'yuamli:ready' && e.source === frame.contentWindow) {
@@ -102,12 +129,20 @@ const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=' + encodeURICo
 
       window.addEventListener('message', onMessage);
       window.addEventListener('message', onReady);
+      window.addEventListener('orientationchange', onResize);
+      window.addEventListener('resize', onResize);
+      // 图片/字体加载完成后布局会变, 再校准一次
+      if (document.readyState === 'complete') {
+        applyHeight();
+      } else {
+        window.addEventListener('load', () => applyHeight(), { once: true });
+      }
 
       // 监听主题 / 主题色切换，重新同步给 iframe
       const mo = new MutationObserver(sendConfig);
       mo.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme-color'] });
 
-      window.__yuamliEmbed = { onMessage, onReady, mo };
+      window.__yuamliEmbed = { onMessage, onReady, onResize, mo };
     })();
   </script>
 )}
@@ -275,7 +310,7 @@ const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=' + encodeURICo
   .post-comment__body { min-height: 80px; }
 
   /* yuamli iframe（嵌入模式：透明背景 + 高度自适应，视觉与博客融合）
-     兜底 min-height 600px：即使高度上报未生效，评论框也有足够高度，避免内部滚动条 */
+     兜底 min-height 600px：仅在 iframe 还没上报真实高度时生效，避免首帧塌成一条缝 */
   .comment-yuamli {
     width: 100%;
     min-height: 600px;
@@ -283,6 +318,11 @@ const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=' + encodeURICo
     border-radius: var(--radius-md);
     background: transparent;
     display: block;
+  }
+
+  /* 已收到 yuamli 上报的真实高度：撤掉 600px 兜底，高度完全跟内容走，底下不再留白 */
+  .comment-yuamli[data-measured='1'] {
+    min-height: 0;
   }
 
   /* twikoo 样式适配 */
@@ -329,6 +369,19 @@ const yuamliFrameSrc = yuamliBaseUrl + yuamliSeparator + 'pageId=' + encodeURICo
   }
 
   @media (max-width: 768px) {
-    .post-comment { padding: 18px 16px; margin-top: 36px; }
+    /* 移动端(yuamli 嵌入): 评论区铺满整张卡片 —— 左右齐边、标题下方不留间距、
+       底部不留内边距, 时间距只由 yuamli 自身的内部留白决定 */
+    .post-comment[data-system='yuamli'] {
+      padding: 18px 0 0;
+      margin-top: 36px;
+      overflow: hidden; /* 让 iframe 被卡片圆角裁切 */
+    }
+    .post-comment[data-system='yuamli'] .post-comment__title {
+      margin-bottom: 0;
+      padding: 0 16px 12px; /* 标题文字保留左右内边距, 分割线仍然通栏 */
+    }
+    .post-comment[data-system='yuamli'] .comment-yuamli { border-radius: 0; }
+
+    .post-comment:not([data-system='yuamli']) { padding: 18px 16px; margin-top: 36px; }
   }
 </style>
