@@ -14,3 +14,8 @@ Thumbs.db
 *.swp
 .vscode
 .idea
+<<<<<<< Updated upstream
+=======
+.workbuddy/memory/2026-10-29.md
+Sumyu.code-workspace
+>>>>>>> Stashed changes

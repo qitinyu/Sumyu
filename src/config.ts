@@ -52,11 +52,10 @@ export const HERO_IMAGES = [
 export const RANDOM_IMAGES = {
   enable: true,
   images: [
-    '/hero/suiji/kjys1.webp',
-    '/hero/suiji/kjys5.webp',
-    '/hero/suiji/kjys6.webp',
-    '/hero/suiji/kjys7.webp',
-    '/hero/suiji/kjys8.webp',
+    '/hero/suiji/1.webp',
+    '/hero/suiji/2.webp',
+    '/hero/suiji/3.webp',
+    '/hero/suiji/4.webp',
   ],
 };
 
@@ -148,10 +147,10 @@ export const LIVE2D = {
 // ========== 站点公告 ==========
 export const ANNOUNCEMENTS = [
   '欢迎来到 Sumyu 的个人博客！',
-  '祝福原神六周年快乐！',
-  'MuWan更新至V3.0.6,欢迎下载体验！',
+  '原神7.2版本11.4日全平台更新！',
+  'MuYan更新至V1.3.7,欢迎下载体验！',
+   '天气渐凉，记得添衣哦！',
   '博客已经接入萌ICP备20268826号,请放心访问！',
-  '祝福铠甲勇士刑天15周年,我们的童年回头看了我一眼！',
 ];
 
 // ========== 站点统计配置 ==========
